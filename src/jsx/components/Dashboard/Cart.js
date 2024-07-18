@@ -61,7 +61,9 @@ export const Cart = () => {
           <hr className="my-2 text-primary" style={{ opacity: "0.9" }} />
           <div>
             <div className="d-flex align-items-center justify-content-between mb-3">
-              <h4 className="font-w500 text-primary">Orden #{nextOrderNumber}</h4>
+              <h4 className="font-w500 text-primary">
+                {isNotNumber ? "Orden sin número" : `Orden #${nextOrderNumber}`}
+              </h4>
             </div>
             <div>
               <input
@@ -124,25 +126,24 @@ export const Cart = () => {
         </div>
         {cart.length > 0 && (
           <div className="card-footer pt-0 border-0">
-             <div className="d-flex align-items-center justify-content-between mb-3">
+            <div className="d-flex align-items-center justify-content-between mb-3">
               <h4 className="font-w500">Subtotal</h4>
               <h5 className="font-w500 text-primary">${subtotal.toFixed(2)}</h5>
             </div>
-             <div className="d-flex align-items-center justify-content-between mb-3">
+            <div className="d-flex align-items-center justify-content-between mb-3">
               <h4 className="font-w500">Adicionales Totales</h4>
               <h5 className="font-w500 text-primary">+ ${extrasTotal.toFixed(2)}</h5>
             </div>
             <div className="d-flex align-items-center justify-content-between">
               <div>
                 <h4 className="font-w500">Descuentos</h4>
-                <p>10% Descuento por pago en efectivo</p>
                 <input
                   type="checkbox"
                   checked={isCash}
                   onChange={(e) => setIsCash(e.target.checked)}
                 /> Pago en efectivo
               </div>
-              <h4 className="font-w500">- ${discount.toFixed(2)}</h4>
+              <h5 className="font-w500 text-primary">- ${discount.toFixed(2)}</h5>
             </div>
             <hr className="my-2 text-primary" style={{ opacity: "0.9" }} />
            

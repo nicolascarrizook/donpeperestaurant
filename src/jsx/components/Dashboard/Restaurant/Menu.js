@@ -85,7 +85,6 @@ const Menu = () => {
                     </form>
                 </div>
             </Modal>
-
             <OrderHistory />
         </>
     )

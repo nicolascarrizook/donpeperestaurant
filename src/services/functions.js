@@ -1,19 +1,7 @@
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { db } from './firebase.service';
-import { addDoc, collection, doc, getDoc, setDoc } from 'firebase/firestore';
 
 const ORDER_DOC_ID = 'counter';
-
-const getCurrentOrderNumber = async () => {
-    const docRef = doc(db, 'orderCounter', ORDER_DOC_ID);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-        const data = docSnap.data();
-        return data.orderNumber;
-    } else {
-        return 0;
-    }
-}
 
 const getOrderNumber = async () => {
     const docRef = doc(db, 'orderCounter', ORDER_DOC_ID);
@@ -61,4 +49,21 @@ const createOrder = async (orderData) => {
     await addDoc(collection(db, 'orders'), orderData);
 };
 
-export { getOrderNumber, incrementOrderNumber, createOrder };
+const closeRegister = async () => {
+    const today = new Date().toISOString().split('T')[0];
+
+    // Reset the order counter
+    const docRef = doc(db, 'orderCounter', ORDER_DOC_ID);
+    await setDoc(docRef, { date: today, orderNumber: 0 });
+
+    // Mark all orders of today as closed
+    const ordersRef = collection(db, 'orders');
+    const q = query(ordersRef, where('date', '==', today));
+    const querySnapshot = await getDocs(q);
+    
+    querySnapshot.forEach(async (doc) => {
+        await updateDoc(doc.ref, { status: 'closed' });
+    });
+};
+
+export { getOrderNumber, incrementOrderNumber, createOrder, closeRegister };

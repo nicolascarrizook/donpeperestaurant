@@ -62,7 +62,6 @@ const Checkout = () => {
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
       {order ? (
         <div style={{ textAlign: 'center', maxWidth: '400px', width: '100%', padding: '20px', border: '1px solid #ccc', borderRadius: '8px', boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)' }}>
-          <h2>Don Pepe</h2>
           <OrderReceipt ref={receiptRef} order={order} isCash={isCash} />
           <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '20px' }}>
             <button onClick={handlePrint} className="btn btn-primary">Imprimir Recibo</button>

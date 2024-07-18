@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import { db } from '../../services/firebase.service';
 import { nanoid } from 'nanoid';
-import { collection, addDoc, getDocs } from 'firebase/firestore';
+import { collection, addDoc, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 
 const useStore = create((set) => ({
   products: [],
@@ -34,6 +34,29 @@ const useStore = create((set) => ({
       }));
     } catch (error) {
       console.error('Error adding product: ', error);
+    }
+  },
+  updateProduct: async (updatedProduct) => {
+    try {
+      const productRef = doc(db, 'products', updatedProduct.id);
+      await updateDoc(productRef, updatedProduct);
+      set((state) => ({
+        products: state.products.map((product) => 
+          product.id === updatedProduct.id ? updatedProduct : product)
+      }));
+    } catch (error) {
+      console.error('Error updating product: ', error);
+    }
+  },
+  deleteProduct: async (productId) => {
+    try {
+      const productRef = doc(db, 'products', productId);
+      await deleteDoc(productRef);
+      set((state) => ({
+        products: state.products.filter((product) => product.id !== productId)
+      }));
+    } catch (error) {
+      console.error('Error deleting product: ', error);
     }
   },
   addToCart: (product, extras = []) => set((state) => {

@@ -7,28 +7,29 @@ const OrderReceipt = forwardRef(({ order, isCash }, ref) => {
   const isWithoutNumber = order?.orderId?.startsWith('sin-asignar');
 
   return (
-    <div ref={ref} style={{ fontFamily: 'monospace', fontSize: '12px', maxWidth: '300px', margin: '0 auto' }}>
-      <h3><strong>Turno: {isWithoutNumber ? 'Sin asignar' : order.orderId.substring(11)}</strong></h3>
-      <p><strong>Fecha:</strong> {new Date(order.date).toLocaleString()}</p>
-      <p><strong>Método de Pago:</strong> {order.paymentMethod}</p>
+    <div ref={ref} style={{ fontFamily: 'monospace', fontSize: '16px', margin: '0 auto', width: '320px', textAlign: 'center', padding: '20px', border: '1px solid #000' }}>
+      <div style={{ marginBottom: '10px' }}>
+        <h2 style={{ margin: 0, fontSize: '24px' }}><strong>Don Pepe</strong></h2>
+        <h3 style={{ margin: 0, fontSize: '20px' }}><strong>Recibo de Orden</strong></h3>
+        <p style={{ margin: 0, fontSize: '14px' }}>Turno: {isWithoutNumber ? 'Sin asignar' : order.orderId.substring(11)}</p>
+        <p style={{ margin: 0, fontSize: '14px' }}>Fecha: {new Date(order.date).toLocaleString()}</p>
+        <p style={{ margin: 0, fontSize: '14px' }}>Método de Pago: {order.paymentMethod}</p>
+      </div>
       <hr />
-      <div>
+      <div style={{ textAlign: 'left' }}>
         {order.items.map((item, index) => (
-          <div key={index} style={{ marginBottom: '5px' }}>
-            <h3><strong>{item.name}</strong></h3>
-            <span>Cantidad: <strong
-              style={{
-                fontSize: '16px',
-                marginLeft: '5px',
-                color: '#333',
-                fontWeight: 'bold'
-              }}
-            >{item.number}</strong></span>
-            <p>Precio: ${item.price.toFixed(2)}</p>
+          <div key={index} style={{ marginBottom: '10px' }}>
+            <p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{item.name}</p>
+            <p style={{ margin: '2px 0', fontSize: '14px' }}>
+              Cantidad: <strong>{item.number}</strong> x Precio Unitario: <strong>${item.price.toFixed(2)}</strong>
+            </p>
+            <p style={{ margin: '2px 0', fontSize: '14px' }}>
+              Precio Total: <strong>${(item.price * item.number).toFixed(2)}</strong>
+            </p>
             {item.extras.length > 0 && (
               <div>
-                <p>Adicionales:</p>
-                <ul>
+                <p style={{ margin: '2px 0', fontSize: '14px' }}>Adicionales:</p>
+                <ul style={{ paddingLeft: '20px', margin: '2px 0', fontSize: '14px' }}>
                   {item.extras.map((extra, idx) => (
                     <li key={idx}>{extra} - $500</li>
                   ))}
@@ -39,11 +40,11 @@ const OrderReceipt = forwardRef(({ order, isCash }, ref) => {
           </div>
         ))}
       </div>
-      <div>
-        <p><strong>Subtotal:</strong> ${order.subtotal.toFixed(2)}</p>
-        <p><strong>Adicionales Totales:</strong> ${order.extrasTotal.toFixed(2)}</p>
-        <p><strong>Descuento:</strong> ${order.discount.toFixed(2)}</p>
-        <p><strong>Total con Descuento:</strong> ${order.total.toFixed(2)}</p>
+      <div style={{ textAlign: 'center' }}>
+        <p style={{ margin: '2px 0', fontSize: '14px' }}><strong>Subtotal:</strong> ${order.subtotal.toFixed(2)}</p>
+        <p style={{ margin: '2px 0', fontSize: '14px' }}><strong>Adicionales Totales:</strong> ${order.extrasTotal.toFixed(2)}</p>
+        <p style={{ margin: '2px 0', fontSize: '14px' }}><strong>Descuento:</strong> -${order.discount.toFixed(2)}</p>
+        <p style={{ margin: '2px 0', fontSize: '18px', fontWeight: 'bold' }}><strong>Total a pagar:</strong> ${order.total.toFixed(2)}</p>
       </div>
     </div>
   );
