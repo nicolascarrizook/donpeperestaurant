@@ -29,17 +29,7 @@ const FavoriteMenu = () => {
 
     return (
         <>
-            {activeTab === 'Grid' && (
-                <div className="search-bar mb-3">
-                    <input
-                        type="text"
-                        placeholder="Buscar productos..."
-                        value={searchTerm}
-                        onChange={handleSearchChange}
-                        className="form-control"
-                    />
-                </div>
-            )}
+
             <Tab.Container defaultActiveKey="Grid" onSelect={(tab) => setActiveTab(tab)}>
                 <div className="d-flex align-items-center justify-content-between mb-4">
                     <Nav as="ul" className="grid-tab nav nav-pills" id="list-tab" role="tablist">
@@ -64,6 +54,17 @@ const FavoriteMenu = () => {
                         <MenuList />
                     </Tab.Pane>
                     <Tab.Pane eventKey="Grid">
+                        {activeTab === 'Grid' && (
+                            <div className="search-bar mb-3">
+                                <input
+                                    type="text"
+                                    placeholder="Buscar productos..."
+                                    value={searchTerm}
+                                    onChange={handleSearchChange}
+                                    className="form-control"
+                                />
+                            </div>
+                        )}
                         <div className="row">
                             {foodProducts.map((item, ind) => (
                                 <div className="col-xl-6 col-xxl-6 col-sm-6" key={ind}>
