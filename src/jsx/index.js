@@ -121,6 +121,7 @@ import Error404 from "./pages/Error404";
 import Error500 from "./pages/Error500";
 import Error503 from "./pages/Error503";
 import { ThemeContext } from "../context/ThemeContext";
+import TodayOrders from "./components/Dashboard/DailyOrder";
 
 
 
@@ -131,7 +132,7 @@ const Markup = () => {
     { url: "", component: <Home /> },
     { url: "dashboard", component: <Home /> },
     { url: "dashboard-dark", component: <DashboardDark /> },
-    { url: "food-order", component: <FoodOrder /> },
+    { url: "food-order", component: <TodayOrders /> },
     { url: "favorite-menu", component: <FavoriteMenu /> },
     { url: "message", component: <Message /> },
     { url: "order-history", component: <OrderHistory /> },

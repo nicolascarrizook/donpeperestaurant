@@ -1,8 +1,8 @@
 // Menu.js
 import React, { useReducer, useState } from 'react';
 import { Modal } from 'react-bootstrap';
+import Products from './Products';
 import useStore from '../../../../store/store/useStore';
-import OrderHistory from '../OrderHistory';
 
 function reducer(state, action) {
     if (action.type === "addMenu") {
@@ -85,7 +85,7 @@ const Menu = () => {
                     </form>
                 </div>
             </Modal>
-            <OrderHistory />
+            <Products />
         </>
     )
 }

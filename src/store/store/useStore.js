@@ -1,13 +1,53 @@
 // store.js
 import { create } from 'zustand';
-import { db } from '../../services/firebase.service';
+import { db, auth } from '../../services/firebase.service';
 import { nanoid } from 'nanoid';
 import { collection, addDoc, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 
 const useStore = create((set) => ({
+  user: null,
+  authError: null,
+  successMessage: null,
+  showLoading: false,
   products: [],
   cart: [],
   orders: [],
+  login: async (email, password) => {
+    set({ showLoading: true, authError: null, successMessage: null });
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Guardar el token en el almacenamiento local si es necesario
+      localStorage.setItem('authToken', userCredential.user.accessToken);
+      
+      set({
+        user: userCredential.user,
+        showLoading: false,
+        successMessage: 'Login successful!',
+      });
+
+      // Eliminar la redirección desde aquí
+      
+    } catch (error) {
+      set({
+        authError: error.message,
+        showLoading: false,
+      });
+    }
+  },
+
+  logout: async () => {
+    try {
+      await signOut(auth);
+      localStorage.removeItem('authToken'); // Remover el token al cerrar sesión
+      set({ user: null });
+    } catch (error) {
+      console.error('Error logging out: ', error);
+    }
+  },
+
+  resetAuthError: () => set({ authError: null }),
   fetchOrders: async () => {
     try {
       const ordersSnapshot = await getDocs(collection(db, 'orders'));

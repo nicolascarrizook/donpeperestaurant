@@ -22,7 +22,7 @@ export const MenuList = [
             },
             {
                 title: 'Historico ordenes',
-                to: 'food-order',
+                to: 'order-history',
             },
         ],
     },
