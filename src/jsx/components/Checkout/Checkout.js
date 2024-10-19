@@ -36,11 +36,12 @@ const Checkout = () => {
             name: item.name,
             price: item.price,
             number: item.number,
-            extras: item.extras
+            extras: item.extras,
+            extraPrices: item.extraPrices // Asegúrate de incluir esto
           })),
           total: totalWithDiscount,
           discount: discount,
-          paymentMethod: isCash ? 'Efectivo' : 'Mercado Pago',
+          paymentMethod: isCash ? 'Efectivo' : 'Débito',
           extrasTotal: extrasTotal,
           subtotal: total
         };

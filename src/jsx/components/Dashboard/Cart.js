@@ -22,12 +22,29 @@ export const Cart = () => {
     fetchOrderNumber();
   }, []);
 
+  const getNumericPrice = (price) => {
+    if (typeof price === 'number') return price;
+    if (typeof price === 'string') {
+      const numericPrice = parseFloat(price);
+      return isNaN(numericPrice) ? 0 : numericPrice;
+    }
+    return 0;
+  };
+
   const subtotal = cart.reduce((acc, item) => {
-    const itemPrice = item.price || 0;
+    const itemPrice = getNumericPrice(item.price);
     return acc + (itemPrice * item.number);
   }, 0);
 
-  const extrasTotal = cart.reduce((acc, item) => item.category.toLowerCase() === 'comida' ? acc + (item.extras.length * 500 * item.number) : acc, 0);
+
+  const extrasTotal = cart.reduce((acc, item) => {
+    if (item.category.toLowerCase() === 'comida') {
+      return acc + item.extras.reduce((extrasSum, extra) => {
+        return extrasSum + (item.extraPrices[extra] || 450);
+      }, 0) * item.number;
+    }
+    return acc;
+  }, 0);
   const total = subtotal + extrasTotal;
   const discount = isCash ? total * 0.1 : 0;
   const totalWithDiscount = total - discount;
@@ -82,7 +99,7 @@ export const Cart = () => {
                   <div className="dlab-info w-100">
                     <div className="d-flex align-items-center justify-content-between">
                       <h4 className="dlab-title"><Link to={"#"}>{item.name}</Link></h4>
-                      <h4 className="text-primary ms-2">+${(item.price || 0).toFixed(2)}</h4>
+                      <h4 className="text-primary ms-2">+${getNumericPrice(item.price).toFixed(2)}</h4>
                     </div>
                     <div className="d-flex align-items-center justify-content-between">
                       <span>x{item.number}</span>
@@ -102,7 +119,9 @@ export const Cart = () => {
                         <div className="d-flex align-items-center flex-wrap">
                           {item.extras.length > 0 ? (
                             item.extras.map((extra, idx) => (
-                              <span key={idx} className="badge bg-secondary me-1 mb-1">{extra} - $500</span>
+                              <span key={idx} className="badge bg-secondary me-1 mb-1">
+                                {extra} - ${item.extraPrices[extra] || 0}
+                              </span>
                             ))
                           ) : (
                             <span>No hay adicionales</span>
@@ -146,7 +165,7 @@ export const Cart = () => {
               <h5 className="font-w500 text-primary">- ${discount.toFixed(2)}</h5>
             </div>
             <hr className="my-2 text-primary" style={{ opacity: "0.9" }} />
-           
+
             <div className="d-flex align-items-center justify-content-between mb-3">
               <h4 className="font-w500">Total</h4>
               <h3 className="font-w500 text-primary">${totalWithDiscount.toFixed(2)}</h3>

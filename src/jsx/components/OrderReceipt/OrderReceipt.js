@@ -6,14 +6,20 @@ const OrderReceipt = forwardRef(({ order, isCash }, ref) => {
 
   const isWithoutNumber = order?.orderId?.startsWith('sin-asignar');
 
+  // Helper function to safely convert price to number and format it
+  const formatPrice = (price) => {
+    const numPrice = Number(price);
+    return isNaN(numPrice) ? '0.00' : numPrice.toFixed(2);
+  };
+
   return (
     <div
       ref={ref}
       style={{
         fontFamily: 'Arial, sans-serif',
-        fontSize: '16px', // Aumentar el tamaño de la fuente
+        fontSize: '16px',
         margin: '0 auto',
-        width: '280px', // Ancho ajustado para evitar cortes
+        width: '280px',
         textAlign: 'center',
         padding: '8px',
         border: '1px solid #000',
@@ -45,17 +51,17 @@ const OrderReceipt = forwardRef(({ order, isCash }, ref) => {
               <span>Cantidad:</span> <strong>{item.number}</strong>
             </p>
             <p style={{ margin: '6px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Precio Unitario:</span> <strong>${item.price.toFixed(2)}</strong>
+              <span>Precio Unitario:</span> <strong>${formatPrice(item.price)}</strong>
             </p>
             <p style={{ margin: '6px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Precio Total:</span> <strong>${(item.price * item.number).toFixed(2)}</strong>
+              <span>Precio Total:</span> <strong>${formatPrice(item.price * item.number)}</strong>
             </p>
-            {item.extras.length > 0 && (
+            {item.extras && item.extras.length > 0 && (
               <div style={{ marginTop: '6px' }}>
                 <p style={{ margin: '6px 0', fontSize: '14px' }}>Adicionales:</p>
                 <ul style={{ paddingLeft: '16px', margin: 0, fontSize: '14px' }}>
                   {item.extras.map((extra, idx) => (
-                    <li key={idx}>{extra} - $500</li>
+                    <li key={idx}>{extra} - ${formatPrice(item.extraPrices[extra] || 450)}</li>
                   ))}
                 </ul>
               </div>
@@ -67,16 +73,16 @@ const OrderReceipt = forwardRef(({ order, isCash }, ref) => {
       {/* Totales */}
       <div style={{ textAlign: 'right', marginBottom: '10px', paddingTop: '8px', borderTop: '1px solid #000' }}>
         <p style={{ margin: '6px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between' }}>
-          <span>Subtotal:</span> <strong>${order.subtotal.toFixed(2)}</strong>
+          <span>Subtotal:</span> <strong>${formatPrice(order.subtotal)}</strong>
         </p>
         <p style={{ margin: '6px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between' }}>
-          <span>Adicionales Totales:</span> <strong>${order.extrasTotal.toFixed(2)}</strong>
+          <span>Adicionales Totales:</span> <strong>${formatPrice(order.extrasTotal)}</strong>
         </p>
         <p style={{ margin: '6px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between' }}>
-          <span>Descuento:</span> <strong>- ${order.discount.toFixed(2)}</strong>
+          <span>Descuento:</span> <strong>- ${formatPrice(order.discount)}</strong>
         </p>
         <p style={{ margin: '10px 0', fontSize: '16px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
-          <span>Total a pagar:</span> <strong>${order.total.toFixed(2)}</strong>
+          <span>Total a pagar:</span> <strong>${formatPrice(order.total)}</strong>
         </p>
       </div>
     </div>
@@ -92,14 +98,15 @@ OrderReceipt.propTypes = {
       PropTypes.shape({
         name: PropTypes.string.isRequired,
         number: PropTypes.number.isRequired,
-        price: PropTypes.number.isRequired,
+        price: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
         extras: PropTypes.arrayOf(PropTypes.string),
+        extraPrices: PropTypes.objectOf(PropTypes.number),
       })
     ).isRequired,
-    total: PropTypes.number.isRequired,
-    discount: PropTypes.number.isRequired,
-    extrasTotal: PropTypes.number.isRequired,
-    subtotal: PropTypes.number.isRequired,
+    total: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+    discount: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+    extrasTotal: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+    subtotal: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
   }).isRequired,
   isCash: PropTypes.bool.isRequired,
 };

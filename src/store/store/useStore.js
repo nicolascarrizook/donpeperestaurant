@@ -17,10 +17,10 @@ const useStore = create((set) => ({
     set({ showLoading: true, authError: null, successMessage: null });
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      
+
       // Guardar el token en el almacenamiento local si es necesario
       localStorage.setItem('authToken', userCredential.user.accessToken);
-      
+
       set({
         user: userCredential.user,
         showLoading: false,
@@ -28,7 +28,7 @@ const useStore = create((set) => ({
       });
 
       // Eliminar la redirección desde aquí
-      
+
     } catch (error) {
       set({
         authError: error.message,
@@ -81,7 +81,7 @@ const useStore = create((set) => ({
       const productRef = doc(db, 'products', updatedProduct.id);
       await updateDoc(productRef, updatedProduct);
       set((state) => ({
-        products: state.products.map((product) => 
+        products: state.products.map((product) =>
           product.id === updatedProduct.id ? updatedProduct : product)
       }));
     } catch (error) {
@@ -100,20 +100,53 @@ const useStore = create((set) => ({
     }
   },
   addToCart: (product, extras = []) => set((state) => {
-    const newProduct = { ...product, cartId: nanoid(), number: 1, extras };
+    const newProduct = {
+      ...product,
+      cartId: nanoid(),
+      number: 1,
+      extras,
+      extraPrices: {}
+    };
     return { cart: [...state.cart, newProduct] };
   }),
+
   incrementProduct: (cartId) => set((state) => ({
     cart: state.cart.map((item) => item.cartId === cartId ? { ...item, number: item.number + 1 } : item)
   })),
   decrementProduct: (cartId) => set((state) => ({
     cart: state.cart.map((item) => item.cartId === cartId && item.number > 1 ? { ...item, number: item.number - 1 } : item)
   })),
-  addExtra: (cartId, extra) => set((state) => ({
-    cart: state.cart.map((item) => item.cartId === cartId ? { ...item, extras: [...item.extras, extra] } : item)
+  addExtra: (cartId, extra, price) => set((state) => ({
+    cart: state.cart.map((item) =>
+      item.cartId === cartId
+        ? {
+          ...item,
+          extras: [...item.extras, extra],
+          extraPrices: { ...item.extraPrices, [extra]: parseFloat(price) || 0 }
+        }
+        : item
+    )
   })),
   removeExtra: (cartId, extra) => set((state) => ({
-    cart: state.cart.map((item) => item.cartId === cartId ? { ...item, extras: item.extras.filter(e => e !== extra) } : item)
+    cart: state.cart.map((item) =>
+      item.cartId === cartId
+        ? {
+          ...item,
+          extras: item.extras.filter(e => e !== extra),
+          extraPrices: { ...item.extraPrices, [extra]: undefined }
+        }
+        : item
+    )
+  })),
+  updateExtraPrice: (cartId, extra, price) => set((state) => ({
+    cart: state.cart.map((item) =>
+      item.cartId === cartId
+        ? {
+          ...item,
+          extraPrices: { ...item.extraPrices, [extra]: parseFloat(price) || 0 }
+        }
+        : item
+    )
   })),
   resetCart: () => set({ cart: [] }),
   removeFromCart: (cartId) => set((state) => ({
