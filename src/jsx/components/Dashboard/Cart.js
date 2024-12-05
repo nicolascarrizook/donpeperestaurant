@@ -1,11 +1,20 @@
-import { Link, useNavigate } from "react-router-dom";
-import useStore from '../../../store/store/useStore';
 import { useEffect, useState } from "react";
-import { incrementOrderNumber, getOrderNumber } from '../../../services/functions';
+import { useNavigate } from "react-router-dom";
+import {
+  getOrderNumber,
+  incrementOrderNumber,
+} from "../../../services/functions";
+import useStore from "../../../store/store/useStore";
 import CustomizationModal from "../CustomizationModal/CustomizationModal";
 
 export const Cart = () => {
-  const { cart, incrementProduct, decrementProduct, removeFromCart } = useStore();
+  const {
+    cart,
+    incrementProduct,
+    decrementProduct,
+    removeFromCart,
+    extrasPrices,
+  } = useStore();
   const [isCash, setIsCash] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selectedProductIndex, setSelectedProductIndex] = useState(null);
@@ -23,8 +32,8 @@ export const Cart = () => {
   }, []);
 
   const getNumericPrice = (price) => {
-    if (typeof price === 'number') return price;
-    if (typeof price === 'string') {
+    if (typeof price === "number") return price;
+    if (typeof price === "string") {
       const numericPrice = parseFloat(price);
       return isNaN(numericPrice) ? 0 : numericPrice;
     }
@@ -33,23 +42,29 @@ export const Cart = () => {
 
   const subtotal = cart.reduce((acc, item) => {
     const itemPrice = getNumericPrice(item.price);
-    return acc + (itemPrice * item.number);
+    return acc + itemPrice * item.number;
   }, 0);
 
-
   const extrasTotal = cart.reduce((acc, item) => {
-    if (item.category.toLowerCase() === 'comida') {
-      return acc + item.extras.reduce((extrasSum, extra) => {
-        return extrasSum + (item.extraPrices[extra] || 450);
-      }, 0) * item.number;
+    if (item.category.toLowerCase() === "comida") {
+      return (
+        acc +
+        item.extras.reduce((extrasSum, extra) => {
+          const extraPrice = extrasPrices?.[extra] || 0;
+          return extrasSum + extraPrice;
+        }, 0) *
+          item.number
+      );
     }
     return acc;
   }, 0);
+
   const total = subtotal + extrasTotal;
   const discount = isCash ? total * 0.1 : 0;
   const totalWithDiscount = total - discount;
 
   const handleOpenModal = (index) => {
+    console.log("Abriendo modal para índice:", index);
     setSelectedProductIndex(index);
     setShowModal(true);
   };
@@ -65,124 +80,224 @@ export const Cart = () => {
       number = await incrementOrderNumber();
       setOrderNumber(number);
     }
-    navigate('/checkout', { state: { orderNumber: number, isCash } });
+    navigate("/checkout", { state: { orderNumber: number, isCash } });
   };
 
   return (
-    <>
-      <div className="card dlab-bg dlab-position">
-        <div className="card-header border-0 pb-0">
-          <h4 className="cate-title">Registro de órdenes</h4>
-        </div>
-        <div className="card-body pt-0 pb-2">
-          <hr className="my-2 text-primary" style={{ opacity: "0.9" }} />
-          <div>
-            <div className="d-flex align-items-center justify-content-between mb-3">
-              <h4 className="font-w500 text-primary">
-                {isNotNumber ? "Orden sin número" : `Orden #${nextOrderNumber}`}
-              </h4>
-            </div>
-            <div>
+    <div
+      className="bg-white rounded-4"
+      style={{
+        border: "1px solid #e0e0e0",
+      }}
+    >
+      {/* Header */}
+      <div className="p-4">
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <div className="d-flex align-items-center">
+            <i
+              className="fas fa-shopping-cart me-2"
+              style={{ color: "#ff6b00" }}
+            ></i>
+            <span style={{ fontSize: "18px", fontWeight: "500" }}>
+              Registro de órdenes
+            </span>
+          </div>
+          <div className="d-flex align-items-center">
+            <span className="me-2" style={{ color: "#666", fontSize: "14px" }}>
+              Sin número
+            </span>
+            <div className="form-check form-switch">
               <input
                 type="checkbox"
                 checked={isNotNumber}
                 onChange={(e) => setIsNotNumber(e.target.checked)}
-              /> Orden sin número
+                className="form-check-input"
+                style={{
+                  width: "40px",
+                  height: "20px",
+                  cursor: "pointer",
+                  borderColor: "#ff6b00",
+                }}
+              />
             </div>
-            {cart.length === 0 ? (
-              <div className="text-center my-4">
-                <h4>No hay productos en el carrito</h4>
-              </div>
-            ) : (
-              cart.map((item, index) => (
-                <div className="order-check d-flex align-items-center my-3" key={item.cartId}>
-                  <div className="dlab-info w-100">
-                    <div className="d-flex align-items-center justify-content-between">
-                      <h4 className="dlab-title"><Link to={"#"}>{item.name}</Link></h4>
-                      <h4 className="text-primary ms-2">+${getNumericPrice(item.price).toFixed(2)}</h4>
-                    </div>
-                    <div className="d-flex align-items-center justify-content-between">
-                      <span>x{item.number}</span>
-                      <div className="quntity">
-                        <button data-decrease onClick={() => decrementProduct(item.cartId)}>-</button>
-                        <input data-value type="text" value={item.number} readOnly />
-                        <button data-increase onClick={() => incrementProduct(item.cartId)}>+</button>
-                      </div>
-                      <button
-                        className="btn btn-sm btn-danger ms-2"
-                        onClick={() => removeFromCart(item.cartId)}
-                      >Remover</button>
-                    </div>
-                    {item.category.toLowerCase() === 'comida' && (
-                      <>
-                        <h5>Adicionales:</h5>
-                        <div className="d-flex align-items-center flex-wrap">
-                          {item.extras.length > 0 ? (
-                            item.extras.map((extra, idx) => (
-                              <span key={idx} className="badge bg-secondary me-1 mb-1">
-                                {extra} - ${item.extraPrices[extra] || 0}
-                              </span>
-                            ))
-                          ) : (
-                            <span>No hay adicionales</span>
-                          )}
-                        </div>
-                        <button
-                          className="btn btn-sm btn-primary mt-2"
-                          onClick={() => handleOpenModal(index)}
-                          style={{ width: '100%' }}
-                        >
-                          Personalizar
-                        </button>
-                      </>
-                    )}
-                  </div>
+          </div>
+        </div>
+
+        <h3
+          style={{
+            color: "#ff6b00",
+            fontSize: "24px",
+            fontWeight: "600",
+          }}
+        >
+          {isNotNumber ? "Orden sin número" : `Orden #${nextOrderNumber}`}
+        </h3>
+      </div>
+
+      {/* Productos */}
+      <div className="px-4">
+        {cart.map((item, index) => (
+          <div key={item.cartId} className="mb-4">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <span style={{ fontSize: "16px", fontWeight: "500" }}>
+                {item.name}
+              </span>
+              <span
+                style={{
+                  color: "#ff6b00",
+                  fontSize: "16px",
+                  fontWeight: "600",
+                }}
+              >
+                +${getNumericPrice(item.price).toFixed(2)}
+              </span>
+            </div>
+
+            <div className="d-flex justify-content-between align-items-center">
+              <div
+                className="d-flex align-items-center"
+                style={{ gap: "10px" }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    border: "1px solid #e0e0e0",
+                    borderRadius: "8px",
+                    padding: "4px 8px",
+                  }}
+                >
+                  <button
+                    onClick={() => decrementProduct(item.cartId)}
+                    className="btn btn-link p-0"
+                    style={{
+                      color: "#666",
+                      textDecoration: "none",
+                      width: "24px",
+                    }}
+                  >
+                    -
+                  </button>
+                  <span className="mx-3">{item.number}</span>
+                  <button
+                    onClick={() => incrementProduct(item.cartId)}
+                    className="btn btn-link p-0"
+                    style={{
+                      color: "#666",
+                      textDecoration: "none",
+                      width: "24px",
+                    }}
+                  >
+                    +
+                  </button>
                 </div>
-              ))
+                <button
+                  onClick={() => removeFromCart(item.cartId)}
+                  className="btn btn-link text-danger p-0"
+                  style={{ textDecoration: "none" }}
+                >
+                  <i className="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+
+            {item.category.toLowerCase() === "comida" && (
+              <div className="mt-3">
+                <div className="mb-2">
+                  <span style={{ color: "#666", fontSize: "14px" }}>
+                    Adicionales:
+                  </span>
+                  <span
+                    className="ms-2"
+                    style={{ color: "#999", fontSize: "14px" }}
+                  >
+                    {item.extras?.length > 0
+                      ? item.extras
+                          .map((extra) => `${extra} (+$${extrasPrices[extra]})`)
+                          .join(", ")
+                      : "Sin adicionales"}
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleOpenModal(index)}
+                  className="btn w-100"
+                  style={{
+                    backgroundColor: "#ff6b00",
+                    color: "white",
+                    borderRadius: "8px",
+                    padding: "8px",
+                  }}
+                >
+                  Personalizar
+                </button>
+              </div>
             )}
           </div>
-          <hr className="my-2 text-primary" style={{ opacity: "0.9" }} />
-        </div>
-        {cart.length > 0 && (
-          <div className="card-footer pt-0 border-0">
-            <div className="d-flex align-items-center justify-content-between mb-3">
-              <h4 className="font-w500">Subtotal</h4>
-              <h5 className="font-w500 text-primary">${subtotal.toFixed(2)}</h5>
-            </div>
-            <div className="d-flex align-items-center justify-content-between mb-3">
-              <h4 className="font-w500">Adicionales Totales</h4>
-              <h5 className="font-w500 text-primary">+ ${extrasTotal.toFixed(2)}</h5>
-            </div>
-            <div className="d-flex align-items-center justify-content-between">
-              <div>
-                <h4 className="font-w500">Descuentos</h4>
-                <input
-                  type="checkbox"
-                  checked={isCash}
-                  onChange={(e) => setIsCash(e.target.checked)}
-                /> Pago en efectivo
-              </div>
-              <h5 className="font-w500 text-primary">- ${discount.toFixed(2)}</h5>
-            </div>
-            <hr className="my-2 text-primary" style={{ opacity: "0.9" }} />
-
-            <div className="d-flex align-items-center justify-content-between mb-3">
-              <h4 className="font-w500">Total</h4>
-              <h3 className="font-w500 text-primary">${totalWithDiscount.toFixed(2)}</h3>
-            </div>
-
-            <button onClick={handleCheckout} className="btn btn-primary btn-block">Checkout</button>
-          </div>
-        )}
+        ))}
       </div>
-      {selectedProductIndex !== null && (
-        <CustomizationModal
-          show={showModal}
-          handleClose={handleCloseModal}
-          product={cart[selectedProductIndex]}
-          productIndex={selectedProductIndex}
-        />
-      )}
-    </>
+
+      {/* Resumen */}
+      <div className="p-4 bg-light rounded-bottom-4">
+        <div className="d-flex justify-content-between mb-2">
+          <span style={{ color: "#666" }}>Subtotal</span>
+          <span>${subtotal.toFixed(2)}</span>
+        </div>
+        <div className="d-flex justify-content-between mb-2">
+          <span style={{ color: "#666" }}>Adicionales</span>
+          <span style={{ color: "#ff6b00" }}>+${extrasTotal.toFixed(2)}</span>
+        </div>
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <label
+            className="d-flex align-items-center gap-2"
+            style={{ cursor: "pointer" }}
+          >
+            <input
+              type="checkbox"
+              checked={isCash}
+              onChange={(e) => setIsCash(e.target.checked)}
+              style={{ width: "18px", height: "18px" }}
+            />
+            <span style={{ color: "#666" }}>Pago en efectivo</span>
+          </label>
+          <span style={{ color: "#28a745" }}>-${discount.toFixed(2)}</span>
+        </div>
+
+        <hr style={{ opacity: 0.1 }} />
+
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <span style={{ fontSize: "18px", fontWeight: "500" }}>Total</span>
+          <span
+            style={{
+              color: "#ff6b00",
+              fontSize: "20px",
+              fontWeight: "600",
+            }}
+          >
+            ${totalWithDiscount.toFixed(2)}
+          </span>
+        </div>
+
+        <button
+          onClick={handleCheckout}
+          className="btn w-100"
+          style={{
+            backgroundColor: "#ff6b00",
+            color: "white",
+            padding: "12px",
+            borderRadius: "8px",
+            fontSize: "16px",
+          }}
+        >
+          Finalizar Pedido
+        </button>
+      </div>
+
+      <CustomizationModal
+        show={showModal}
+        handleClose={handleCloseModal}
+        product={cart[selectedProductIndex]}
+        productIndex={selectedProductIndex}
+      />
+    </div>
   );
 };

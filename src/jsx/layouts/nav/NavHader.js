@@ -1,39 +1,18 @@
-import React, { useContext, useState } from "react";
-/// React router dom
+import React from "react";
 import { Link } from "react-router-dom";
-import { ThemeContext } from "../../../context/ThemeContext";
-
-export function  NavMenuToggle(){
-	setTimeout(()=>{	
-		let mainwrapper = document.querySelector("#main-wrapper");
-		if(mainwrapper.classList.contains('menu-toggle')){
-			mainwrapper.classList.remove("menu-toggle");
-		}else{
-			mainwrapper.classList.add("menu-toggle");
-		}
-	},200);
-}
-
 
 const NavHader = () => {
-  const [toggle, setToggle] = useState(false);
-  const { navigationHader, openMenuToggle, background } = useContext(
-    ThemeContext
-  );
   return (
-    <div className="nav-header">
+    <div className="nav-header d-flex justify-content-between align-items-center">
       <Link to="/dashboard" className="brand-logo">
-      
+        <img src="/logo.png" alt="Logo" className="brand-title" />
       </Link>
-
-      <div
-        className="nav-control"
-        onClick={() => {
-          setToggle(!toggle);
-          //openMenuToggle();
-         NavMenuToggle();
-        }}
-      >
+      <div className="brand-title text-center">
+        <h4 className="mb-0">Sistema</h4>
+        <span className="brand-sub-title">Gestión de Pedidos</span>
+      </div>
+      <div className="brand-logo invisible">
+        <img src="/logo.png" alt="" className="brand-title invisible" />
       </div>
     </div>
   );

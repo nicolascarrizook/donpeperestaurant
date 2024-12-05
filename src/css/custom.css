@@ -1,0 +1,52 @@
+.product-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.nav-tabs-custom {
+  border-radius: 50px;
+  background: #f8f9fa;
+  padding: 5px;
+}
+
+.nav-tabs-custom .nav-link {
+  border-radius: 50px;
+  padding: 10px 20px;
+  font-weight: 500;
+  color: #6c757d;
+  transition: all 0.3s ease;
+}
+
+.nav-tabs-custom .nav-link.active {
+  background: #primary;
+  color: white;
+}
+
+.category-nav {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: white;
+  padding: 15px 0;
+}
+
+.search-bar .input-group {
+  border-radius: 50px;
+  overflow: hidden;
+}
+
+.search-bar .form-control {
+  border: none;
+  padding: 12px 20px;
+}
+
+.search-bar .input-group-text {
+  border: none;
+  padding: 0 20px;
+}

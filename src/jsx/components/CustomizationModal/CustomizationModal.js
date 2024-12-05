@@ -1,20 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { Modal, Button } from 'react-bootstrap';
-import useStore from '../../../store/store/useStore';
+import React, { useEffect, useState } from "react";
+import { Badge, Button, Modal, Table } from "react-bootstrap";
+import useStore from "../../../store/store/useStore";
 
-const CustomizationModal = ({ show, handleClose, product, productIndex }) => {
-  const { addExtra, removeExtra, updateExtraPrice } = useStore();
+const CustomizationModal = ({ show, handleClose, product }) => {
+  const { addExtra, removeExtra, extrasPrices } = useStore();
   const [selectedExtras, setSelectedExtras] = useState([]);
-  const [extraPrices, setExtraPrices] = useState({});
-  const [editingExtra, setEditingExtra] = useState(null);
+  const [saveStatus, setSaveStatus] = useState("");
 
   useEffect(() => {
-    setSelectedExtras(product.extras || []);
-    const initialPrices = {};
-    ['Queso', 'Jamon', 'Huevo'].forEach(extra => {
-      initialPrices[extra] = product.extraPrices?.[extra] || 450;
-    });
-    setExtraPrices(initialPrices);
+    setSelectedExtras(product?.extras || []);
   }, [product]);
 
   const handleExtraChange = (extra) => {
@@ -25,85 +19,143 @@ const CustomizationModal = ({ show, handleClose, product, productIndex }) => {
     );
   };
 
-  const handleEditPrice = (extra) => {
-    setEditingExtra(extra);
-  };
+  const handleSave = async () => {
+    try {
+      await Promise.all(
+        product.extras.map((extra) => removeExtra(product.cartId, extra))
+      );
+      await Promise.all(
+        selectedExtras.map((extra) => addExtra(product.cartId, extra))
+      );
 
-  const handlePriceChange = (extra, price) => {
-    const numericPrice = parseFloat(price) || 450;
-    setExtraPrices(prev => ({
-      ...prev,
-      [extra]: numericPrice
-    }));
-  };
-
-  const handleSave = () => {
-    product.extras.forEach((extra) => removeExtra(product.cartId, extra));
-    selectedExtras.forEach((extra) => {
-      const price = extraPrices[extra] || 450;
-      addExtra(product.cartId, extra, price);
-    });
-    handleClose();
+      setSaveStatus("Cambios guardados correctamente");
+      setTimeout(() => {
+        setSaveStatus("");
+        handleClose();
+      }, 1500);
+    } catch (error) {
+      setSaveStatus("Error al guardar los cambios");
+      setTimeout(() => setSaveStatus(""), 1500);
+    }
   };
 
   if (!product) return null;
 
+  const availableExtras = extrasPrices ? Object.keys(extrasPrices) : [];
+  const totalExtras = selectedExtras.reduce(
+    (total, extra) => total + (extrasPrices?.[extra] || 0),
+    0
+  );
+
   return (
-    <Modal show={show} onHide={handleClose} centered>
-      <Modal.Header closeButton>
-        <Modal.Title>Personalizar {product.name}</Modal.Title>
+    <Modal show={show} onHide={handleClose} size="lg">
+      <Modal.Header closeButton className="border-0">
+        <Modal.Title>
+          <div className="d-flex flex-column">
+            <h5 className="mb-1">Personalizar Pedido</h5>
+            <div className="text-muted fs-6">
+              {product.name} -
+              <Badge bg="primary" className="ms-2">
+                Total Adicionales: ${totalExtras}
+              </Badge>
+            </div>
+          </div>
+        </Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <div className="mb-3">
-          <h5>Adicionales disponibles:</h5>
-          {['Queso', 'Jamon', 'Huevo'].map((extra) => (
-            <div key={extra} className="form-check d-flex align-items-center justify-content-between mb-2">
-              <div>
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id={extra.toLowerCase()}
-                  onChange={() => handleExtraChange(extra)}
-                  checked={selectedExtras.includes(extra)}
-                />
-                <label className="form-check-label ms-2" htmlFor={extra.toLowerCase()}>
-                  {extra}
-                </label>
-              </div>
-              <div className="d-flex align-items-center">
-                {editingExtra === extra ? (
-                  <input
-                    type="number"
-                    className="form-control form-control-sm"
-                    style={{ width: '80px' }}
-                    value={extraPrices[extra]}
-                    onChange={(e) => handlePriceChange(extra, e.target.value)}
-                    onBlur={() => setEditingExtra(null)}
-                    autoFocus
-                  />
-                ) : (
-                  <>
-                    <span className="me-2">${extraPrices[extra]}</span>
-                    <Button 
-                      variant="outline-secondary" 
-                      size="sm"
-                      onClick={() => handleEditPrice(extra)}
-                    >
-                      Editar
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
+        {saveStatus && (
+          <div
+            className={`alert alert-${
+              saveStatus.includes("Error") ? "danger" : "success"
+            } mb-3`}
+          >
+            {saveStatus}
+          </div>
+        )}
+
+        <div className="table-responsive">
+          <Table hover className="table-striped">
+            <thead className="bg-light">
+              <tr>
+                <th className="py-3">Selección</th>
+                <th className="py-3">Adicional</th>
+                <th className="py-3 text-end">Precio</th>
+                <th className="py-3 text-center">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {availableExtras.map((extra) => {
+                const isSelected = selectedExtras.includes(extra);
+                return (
+                  <tr
+                    key={extra}
+                    onClick={() => handleExtraChange(extra)}
+                    style={{ cursor: "pointer" }}
+                    className={isSelected ? "table-active" : ""}
+                  >
+                    <td className="py-3">
+                      <div className="form-check mb-0">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {}}
+                          id={`extra-${extra}`}
+                        />
+                      </div>
+                    </td>
+                    <td className="py-3">
+                      <label
+                        className="form-check-label"
+                        htmlFor={`extra-${extra}`}
+                        style={{ cursor: "pointer" }}
+                      >
+                        {extra}
+                      </label>
+                    </td>
+                    <td className="py-3 text-end">
+                      <span className="fw-bold">
+                        ${extrasPrices?.[extra] || 0}
+                      </span>
+                    </td>
+                    <td className="py-3 text-center">
+                      <Badge
+                        bg={isSelected ? "success" : "secondary"}
+                        className="px-3 py-2"
+                      >
+                        {isSelected ? "Agregado" : "Disponible"}
+                      </Badge>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot className="bg-light">
+              <tr>
+                <td colSpan="2" className="fw-bold">
+                  Total Seleccionado
+                </td>
+                <td className="text-end fw-bold">${totalExtras}</td>
+                <td className="text-center">
+                  <Badge bg="primary" className="px-3 py-2">
+                    {selectedExtras.length} items
+                  </Badge>
+                </td>
+              </tr>
+            </tfoot>
+          </Table>
         </div>
       </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={handleClose}>
+      <Modal.Footer className="border-0">
+        <Button variant="outline-secondary" onClick={handleClose}>
           Cancelar
         </Button>
-        <Button variant="primary" onClick={handleSave}>
-          Guardar
+        <Button
+          variant="primary"
+          onClick={handleSave}
+          disabled={!selectedExtras.length}
+        >
+          Guardar Cambios
         </Button>
       </Modal.Footer>
     </Modal>

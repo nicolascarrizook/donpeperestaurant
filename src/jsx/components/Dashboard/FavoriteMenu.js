@@ -1,103 +1,300 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Tab, Nav } from 'react-bootstrap';
-import useStore from '../../../store/store/useStore';
-import MenuList from './Favorite/MenuList';
+import React, { useEffect, useMemo, useState } from "react";
+import { Nav, Spinner, Tab } from "react-bootstrap";
+import useStore from "../../../store/store/useStore";
+
+const CATEGORIES = {
+  MINUTAS: "comida",
+  SANDWICHES: "sandwiches",
+  MIGA: "miga",
+  PIZZAS: "pizzas",
+  CERVEZAS: "cervezas",
+  GASEOSAS: "gaseosas",
+};
+
+const ITEMS_PER_PAGE = 6; // Número de items por página
 
 const FavoriteMenu = () => {
-    const { products, fetchProducts, addToCart } = useStore();
-    const [searchTerm, setSearchTerm] = useState('');
-    const [activeTab, setActiveTab] = useState('Grid');
+  const { products, fetchProducts, addToCart } = useStore();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState(CATEGORIES.MINUTAS);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedItem, setSelectedItem] = useState(null);
 
-    useEffect(() => {
-        fetchProducts();
-    }, [fetchProducts]);
-
-    const handleAddToCart = (product) => {
-        addToCart(product);
+  useEffect(() => {
+    const loadProducts = async () => {
+      setIsLoading(true);
+      await fetchProducts();
+      setIsLoading(false);
     };
+    loadProducts();
+  }, [fetchProducts]);
 
-    const handleSearchChange = (event) => {
-        setSearchTerm(event.target.value);
-    };
+  // Reset página cuando cambia la categoría o búsqueda
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchTerm]);
 
-    const foodProducts = products.filter(product =>
-        product.category.toLowerCase() === 'comida' &&
-        (product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            product.description.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+  const productsByCategory = useMemo(() => {
+    return products.reduce((acc, product) => {
+      const category = product.category.toLowerCase();
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      if (
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.description.toLowerCase().includes(searchTerm.toLowerCase())
+      ) {
+        acc[category].push(product);
+      }
+      return acc;
+    }, {});
+  }, [products, searchTerm]);
+
+  const handleItemClick = (item) => {
+    setSelectedItem(item.id);
+    addToCart(item);
+
+    // Resetear la selección después de un momento
+    setTimeout(() => {
+      setSelectedItem(null);
+    }, 500);
+  };
+
+  const renderProductGrid = (category) => {
+    const productsToShow = productsByCategory[category] || [];
+    const totalPages = Math.ceil(productsToShow.length / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const currentProducts = productsToShow.slice(startIndex, endIndex);
+
+    if (isLoading) {
+      return (
+        <div className="text-center py-5">
+          <Spinner animation="border" variant="primary" />
+          <p className="mt-2">Cargando productos...</p>
+        </div>
+      );
+    }
+
+    if (productsToShow.length === 0) {
+      return (
+        <div className="text-center py-5">
+          <p>No se encontraron productos en esta categoría</p>
+        </div>
+      );
+    }
 
     return (
-        <>
+      <>
+        <div className="row g-3">
+          {currentProducts.map((item, ind) => (
+            <div className="col-xl-6 col-xxl-6 col-sm-6" key={ind}>
+              <div
+                className="card border"
+                style={{
+                  borderRadius: "10px",
+                  backgroundColor:
+                    selectedItem === item.id ? "#fff9f5" : "#fff",
+                  border:
+                    selectedItem === item.id
+                      ? "2px solid #ff6b00"
+                      : "1px solid #e5e5e5",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  userSelect: "none",
+                  WebkitTapHighlightColor: "transparent",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+                onClick={() => handleItemClick(item)}
+                onTouchStart={(e) => {
+                  e.currentTarget.style.transform = "scale(0.98)";
+                  e.currentTarget.style.backgroundColor = "#fff9f5";
+                }}
+                onTouchEnd={(e) => {
+                  e.currentTarget.style.transform = "scale(1)";
+                  if (selectedItem !== item.id) {
+                    e.currentTarget.style.backgroundColor = "#fff";
+                  }
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#fff9f5";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow = "0 4px 8px rgba(0,0,0,0.1)";
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedItem !== item.id) {
+                    e.currentTarget.style.backgroundColor = "#fff";
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "none";
+                  }
+                }}
+              >
+                {selectedItem === item.id && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "10px",
+                      right: "10px",
+                      backgroundColor: "#ff6b00",
+                      color: "white",
+                      borderRadius: "50%",
+                      width: "24px",
+                      height: "24px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      zIndex: 1,
+                    }}
+                  >
+                    <i className="fas fa-check"></i>
+                  </div>
+                )}
 
-            <Tab.Container defaultActiveKey="Grid" onSelect={(tab) => setActiveTab(tab)}>
-                <div className="d-flex align-items-center justify-content-between mb-4">
-                    <Nav as="ul" className="grid-tab nav nav-pills" id="list-tab" role="tablist">
-                        <Nav.Item as="li" className="nav-item" role="presentation">
-                            <Nav.Link as="button" className="nav-link me-3" id="pills-home-tab" eventKey="List">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-cup-straw" viewBox="0 0 16 16">
-                                    <path d="M13.902.334a.5.5 0 0 1-.28.65l-2.254.902-.4 1.927c.376.095.715.215.972.367.228.135.56.396.56.82q0 .069-.011.132l-.962 9.068a1.28 1.28 0 0 1-.524.93c-.488.34-1.494.87-3.01.87s-2.522-.53-3.01-.87a1.28 1.28 0 0 1-.524-.93L3.51 5.132A1 1 0 0 1 3.5 5c0-.424.332-.685.56-.82.262-.154.607-.276.99-.372C5.824 3.614 6.867 3.5 8 3.5c.712 0 1.389.045 1.985.127l.464-2.215a.5.5 0 0 1 .303-.356l2.5-1a.5.5 0 0 1 .65.278M9.768 4.607A14 14 0 0 0 8 4.5c-1.076 0-2.033.11-2.707.278A3.3 3.3 0 0 0 4.645 5c.146.073.362.15.648.222C5.967 5.39 6.924 5.5 8 5.5c.571 0 1.109-.03 1.588-.085zm.292 1.756C9.445 6.45 8.742 6.5 8 6.5c-1.133 0-2.176-.114-2.95-.308a6 6 0 0 1-.435-.127l.838 8.03c.013.121.06.186.102.215.357.249 1.168.69 2.438.69s2.081-.441 2.438-.69c.042-.029.09-.094.102-.215l.852-8.03a6 6 0 0 1-.435.127 9 9 0 0 1-.89.17zM4.467 4.884s.003.002.005.006zm7.066 0-.005.006zM11.354 5a3 3 0 0 0-.604-.21l-.099.445.055-.013c.286-.072.502-.149.648-.222" />
-                                </svg>
-                            </Nav.Link>
-                        </Nav.Item>
-                        <Nav.Item as="li" className="nav-item " role="presentation">
-                            <Nav.Link as="button" className="nav-link" id="pills-grid-tab" eventKey="Grid">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-shop-window" viewBox="0 0 16 16">
-                                    <path d="M2.97 1.35A1 1 0 0 1 3.73 1h8.54a1 1 0 0 1 .76.35l2.609 3.044A1.5 1.5 0 0 1 16 5.37v.255a2.375 2.375 0 0 1-4.25 1.458A2.37 2.37 0 0 1 9.875 8 2.37 2.37 0 0 1 8 7.083 2.37 2.37 0 0 1 6.125 8a2.37 2.37 0 0 1-1.875-.917A2.375 2.375 0 0 1 0 5.625V5.37a1.5 1.5 0 0 1 .361-.976zm1.78 4.275a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 1 0 2.75 0V5.37a.5.5 0 0 0-.12-.325L12.27 2H3.73L1.12 5.045A.5.5 0 0 0 1 5.37v.255a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0M1.5 8.5A.5.5 0 0 1 2 9v6h12V9a.5.5 0 0 1 1 0v6h.5a.5.5 0 0 1 0 1H.5a.5.5 0 0 1 0-1H1V9a.5.5 0 0 1 .5-.5m2 .5a.5.5 0 0 1 .5.5V13h8V9.5a.5.5 0 0 1 1 0V13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5a.5.5 0 0 1 .5-.5" />
-                                </svg>
-                            </Nav.Link>
-                        </Nav.Item>
-                    </Nav>
+                <div className="card-body p-4">
+                  {/* Título y Precio */}
+                  <div className="d-flex justify-content-between align-items-start mb-2">
+                    <h4
+                      className="text-primary mb-0"
+                      style={{ fontSize: "1.25rem" }}
+                    >
+                      {item.name}
+                    </h4>
+                    <h4
+                      className="text-primary mb-0"
+                      style={{ fontSize: "1.25rem" }}
+                    >
+                      +${item.price}
+                    </h4>
+                  </div>
+
+                  {/* Categoría */}
+                  <div className="mb-3">
+                    <span className="text-muted small">
+                      <i className="fas fa-tag me-1"></i> {item.category}
+                    </span>
+                  </div>
+
+                  {/* Descripción */}
+                  <p className="text-muted mb-3" style={{ fontSize: "0.9rem" }}>
+                    {item.description}
+                  </p>
+
+                  {/* Quitamos el botón ya que toda la card es clickeable */}
                 </div>
-                <Tab.Content>
-                    <Tab.Pane eventKey="List">
-                        <MenuList />
-                    </Tab.Pane>
-                    <Tab.Pane eventKey="Grid">
-                        {activeTab === 'Grid' && (
-                            <div className="search-bar mb-3">
-                                <input
-                                    type="text"
-                                    placeholder="Buscar productos..."
-                                    value={searchTerm}
-                                    onChange={handleSearchChange}
-                                    className="form-control"
-                                />
-                            </div>
-                        )}
-                        <div className="row">
-                            {foodProducts.map((item, ind) => (
-                                <div className="col-xl-6 col-xxl-6 col-sm-6" key={ind}>
-                                    <div className="card dishe-bx b-hover style-1"
-                                        style={{
-                                            cursor: "pointer",
-                                        }}
-                                        onClick={() => handleAddToCart(item)}
-                                    >
-                                        <div className="card-body pb-0 pt-3">
-                                            <div className="border-bottom pb-3">
-                                                <h4 className="font-w500 mb-1">
-                                                    <Link to={"#"}>{item.name}</Link>
-                                                </h4>
-                                                <h5 className="font-w400 mb-0">{item.description}</h5>
-                                            </div>
-                                        </div>
-                                        <div className="card-footer border-0 pt-4">
-                                            <div className="common d-flex align-items-center justify-content-between">
-                                                <div>
-                                                    <Link to={"#"}><h4>{item.name}</h4></Link>
-                                                    <h3 className="mb-0 text-primary">$ {item.price}</h3>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </Tab.Pane>
-                </Tab.Content>
-            </Tab.Container>
-        </>
-    )
-}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Paginación */}
+        {totalPages > 1 && (
+          <div className="d-flex align-items-center justify-content-between mt-4 pt-3">
+            <small className="text-muted">
+              Mostrando {currentProducts.length} de {productsToShow.length}{" "}
+              productos
+            </small>
+            <nav>
+              <ul className="pagination pagination-sm mb-0">
+                <li
+                  className={`page-item ${currentPage === 1 ? "disabled" : ""}`}
+                >
+                  <button
+                    className="page-link"
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(1, prev - 1))
+                    }
+                  >
+                    <i className="fas fa-chevron-left"></i>
+                  </button>
+                </li>
+                {[...Array(totalPages)].map((_, idx) => (
+                  <li
+                    key={idx + 1}
+                    className={`page-item ${
+                      currentPage === idx + 1 ? "active" : ""
+                    }`}
+                  >
+                    <button
+                      className="page-link"
+                      onClick={() => setCurrentPage(idx + 1)}
+                    >
+                      {idx + 1}
+                    </button>
+                  </li>
+                ))}
+                <li
+                  className={`page-item ${
+                    currentPage === totalPages ? "disabled" : ""
+                  }`}
+                >
+                  <button
+                    className="page-link"
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                    }
+                  >
+                    <i className="fas fa-chevron-right"></i>
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        )}
+      </>
+    );
+  };
+
+  return (
+    <>
+      <div className="search-bar mb-3">
+        <input
+          type="text"
+          placeholder="Buscar productos..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="form-control form-control-sm"
+        />
+      </div>
+
+      <Tab.Container
+        defaultActiveKey={CATEGORIES.MINUTAS}
+        onSelect={(tab) => setActiveTab(tab)}
+      >
+        <div className="d-flex align-items-center justify-content-between mb-4">
+          <Nav className="nav nav-tabs style-1" role="tablist">
+            <Nav.Item>
+              <Nav.Link eventKey={CATEGORIES.MINUTAS}>Minutas</Nav.Link>
+            </Nav.Item>
+            <Nav.Item>
+              <Nav.Link eventKey={CATEGORIES.SANDWICHES}>Sandwiches</Nav.Link>
+            </Nav.Item>
+            <Nav.Item>
+              <Nav.Link eventKey={CATEGORIES.MIGA}>Miga</Nav.Link>
+            </Nav.Item>
+            <Nav.Item>
+              <Nav.Link eventKey={CATEGORIES.PIZZAS}>Pizzas</Nav.Link>
+            </Nav.Item>
+            <Nav.Item>
+              <Nav.Link eventKey={CATEGORIES.CERVEZAS}>Cervezas</Nav.Link>
+            </Nav.Item>
+            <Nav.Item>
+              <Nav.Link eventKey={CATEGORIES.GASEOSAS}>Gaseosas</Nav.Link>
+            </Nav.Item>
+          </Nav>
+        </div>
+
+        <Tab.Content>
+          {Object.values(CATEGORIES).map((category) => (
+            <Tab.Pane key={category} eventKey={category}>
+              {renderProductGrid(category)}
+            </Tab.Pane>
+          ))}
+        </Tab.Content>
+      </Tab.Container>
+    </>
+  );
+};
+
 export default FavoriteMenu;

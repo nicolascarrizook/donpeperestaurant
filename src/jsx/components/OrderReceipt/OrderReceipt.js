@@ -1,89 +1,245 @@
-import React, { forwardRef } from 'react';
-import PropTypes from 'prop-types';
+import PropTypes from "prop-types";
+import React, { forwardRef } from "react";
+import useStore from "../../../store/store/useStore";
+import { formatCurrency } from "../../../utils/formatters";
+
+const ReceiptSection = ({ children, withBorder }) => (
+  <div
+    style={{
+      marginBottom: "16px",
+      ...(withBorder && {
+        borderBottom: "1px solid #ddd",
+        paddingBottom: "16px",
+      }),
+    }}
+  >
+    {children}
+  </div>
+);
+
+const ReceiptRow = ({ label, value, isTotal, fontSize = "14px" }) => (
+  <p
+    style={{
+      margin: "6px 0",
+      fontSize,
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      ...(isTotal && {
+        fontWeight: "bold",
+        marginTop: "12px",
+        fontSize: "16px",
+      }),
+    }}
+  >
+    <span>{label}</span>
+    <strong>{value}</strong>
+  </p>
+);
 
 const OrderReceipt = forwardRef(({ order, isCash }, ref) => {
+  const { extrasPrices } = useStore();
+
   if (!order) return null;
 
-  const isWithoutNumber = order?.orderId?.startsWith('sin-asignar');
+  const isWithoutNumber = order?.orderId?.startsWith("sin-asignar");
 
-  // Helper function to safely convert price to number and format it
-  const formatPrice = (price) => {
-    const numPrice = Number(price);
-    return isNaN(numPrice) ? '0.00' : numPrice.toFixed(2);
+  const toNumber = (value) => {
+    const num =
+      typeof value === "string"
+        ? parseFloat(value.replace(/[^0-9.-]+/g, ""))
+        : value;
+    return isNaN(num) ? 0 : num;
   };
+
+  const renderItemExtras = (item) => {
+    if (!item.extras?.length) return null;
+
+    return (
+      <div style={{ marginTop: "8px" }}>
+        <p style={{ margin: "4px 0", fontSize: "14px", color: "#666" }}>
+          Adicionales:
+        </p>
+        <ul
+          style={{
+            paddingLeft: "16px",
+            margin: "4px 0",
+            fontSize: "14px",
+            listStyle: "none",
+          }}
+        >
+          {item.extras.map((extra, idx) => {
+            const extraPrice = toNumber(extrasPrices[extra]);
+            return (
+              <li
+                key={idx}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: "4px",
+                }}
+              >
+                <span>{extra}</span>
+                <span>+{formatCurrency(extraPrice)}</span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  };
+
+  const calculateItemTotal = (item) => {
+    const basePrice = toNumber(item.price) * item.number;
+    const extrasTotal =
+      item.extras?.reduce((sum, extra) => {
+        const extraPrice = toNumber(extrasPrices[extra]);
+        return sum + extraPrice * item.number;
+      }, 0) || 0;
+
+    return basePrice + extrasTotal;
+  };
+
+  const calculateOrderTotals = () => {
+    const itemTotals = order.items.map(calculateItemTotal);
+    const subtotal = itemTotals.reduce((sum, total) => sum + total, 0);
+    const extrasTotal = order.items.reduce((sum, item) => {
+      return (
+        sum +
+        (item.extras?.reduce((extraSum, extra) => {
+          return extraSum + toNumber(extrasPrices[extra]) * item.number;
+        }, 0) || 0)
+      );
+    }, 0);
+
+    const discount = isCash ? subtotal * 0.1 : 0;
+    const total = subtotal - discount;
+
+    return {
+      subtotal: toNumber(subtotal),
+      extrasTotal: toNumber(extrasTotal),
+      discount: toNumber(discount),
+      total: toNumber(total),
+    };
+  };
+
+  const totals = calculateOrderTotals();
 
   return (
     <div
       ref={ref}
       style={{
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '16px',
-        margin: '0 auto',
-        width: '280px',
-        textAlign: 'center',
-        padding: '8px',
-        border: '1px solid #000',
-        lineHeight: '1.4',
-        boxSizing: 'border-box',
+        fontFamily: "system-ui, -apple-system, sans-serif",
+        fontSize: "16px",
+        width: "300px",
+        margin: "0 auto",
+        padding: "20px",
+        backgroundColor: "#fff",
+        borderRadius: "8px",
+        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
       }}
     >
-      {/* Encabezado */}
-      <div style={{ marginBottom: '10px', borderBottom: '1px solid #000', paddingBottom: '8px' }}>
-        <h2 style={{ margin: 0, fontSize: '20px' }}><strong>Don Pepe</strong></h2>
-        <h3 style={{ margin: 0, fontSize: '18px', color: '#555' }}><strong>Recibo de Orden</strong></h3>
-        <p style={{ margin: '6px 0', fontSize: '14px' }}>
-          Turno: <strong>{isWithoutNumber ? 'Sin asignar' : order.orderId.substring(11)}</strong>
-        </p>
-        <p style={{ margin: '6px 0', fontSize: '14px' }}>
-          Fecha: <strong>{new Date(order.date).toLocaleString()}</strong>
-        </p>
-        <p style={{ margin: '6px 0', fontSize: '14px' }}>
-          Método de Pago: <strong>{order.paymentMethod}</strong>
-        </p>
-      </div>
+      {/* Header */}
+      <ReceiptSection withBorder>
+        <h2
+          style={{
+            margin: "0 0 8px",
+            fontSize: "24px",
+            textAlign: "center",
+            color: "#ff6b00",
+          }}
+        >
+          Don Pepe
+        </h2>
+        <h3
+          style={{
+            margin: "0 0 16px",
+            fontSize: "18px",
+            textAlign: "center",
+            color: "#444",
+          }}
+        >
+          Recibo de Orden
+        </h3>
+        <ReceiptRow
+          label="Turno:"
+          value={isWithoutNumber ? "Sin asignar" : order.orderId.substring(11)}
+        />
+        <ReceiptRow
+          label="Fecha:"
+          value={new Date(order.date).toLocaleString()}
+        />
+        <ReceiptRow label="Método de Pago:" value={order.paymentMethod} />
+      </ReceiptSection>
 
-      {/* Detalles del Pedido */}
-      <div style={{ textAlign: 'left', marginBottom: '10px', borderBottom: '1px solid #000', paddingBottom: '8px' }}>
+      {/* Items */}
+      <ReceiptSection withBorder>
         {order.items.map((item, index) => (
-          <div key={index} style={{ marginBottom: '10px' }}>
-            <p style={{ margin: 0, fontSize: '16px', fontWeight: 'bold' }}>{item.name}</p>
-            <p style={{ margin: '6px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Cantidad:</span> <strong>{item.number}</strong>
-            </p>
-            <p style={{ margin: '6px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Precio Unitario:</span> <strong>${formatPrice(item.price)}</strong>
-            </p>
-            <p style={{ margin: '6px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Precio Total:</span> <strong>${formatPrice(item.price * item.number)}</strong>
-            </p>
-            {item.extras && item.extras.length > 0 && (
-              <div style={{ marginTop: '6px' }}>
-                <p style={{ margin: '6px 0', fontSize: '14px' }}>Adicionales:</p>
-                <ul style={{ paddingLeft: '16px', margin: 0, fontSize: '14px' }}>
-                  {item.extras.map((extra, idx) => (
-                    <li key={idx}>{extra} - ${formatPrice(item.extraPrices[extra] || 450)}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+          <div
+            key={index}
+            style={{
+              marginBottom: index !== order.items.length - 1 ? "16px" : 0,
+              padding: "8px",
+              backgroundColor: "#f8f9fa",
+              borderRadius: "6px",
+            }}
+          >
+            <h4
+              style={{
+                margin: "0 0 8px",
+                fontSize: "16px",
+                fontWeight: "600",
+              }}
+            >
+              {item.name}
+            </h4>
+            <ReceiptRow label="Cantidad" value={item.number} />
+            <ReceiptRow
+              label="Precio Unitario"
+              value={formatCurrency(item.price)}
+            />
+            {renderItemExtras(item)}
+            <ReceiptRow
+              label="Subtotal del ítem"
+              value={formatCurrency(calculateItemTotal(item))}
+              isTotal
+            />
           </div>
         ))}
-      </div>
+      </ReceiptSection>
 
-      {/* Totales */}
-      <div style={{ textAlign: 'right', marginBottom: '10px', paddingTop: '8px', borderTop: '1px solid #000' }}>
-        <p style={{ margin: '6px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between' }}>
-          <span>Subtotal:</span> <strong>${formatPrice(order.subtotal)}</strong>
-        </p>
-        <p style={{ margin: '6px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between' }}>
-          <span>Adicionales Totales:</span> <strong>${formatPrice(order.extrasTotal)}</strong>
-        </p>
-        <p style={{ margin: '6px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between' }}>
-          <span>Descuento:</span> <strong>- ${formatPrice(order.discount)}</strong>
-        </p>
-        <p style={{ margin: '10px 0', fontSize: '16px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
-          <span>Total a pagar:</span> <strong>${formatPrice(order.total)}</strong>
-        </p>
+      {/* Totals */}
+      <ReceiptSection>
+        <ReceiptRow label="Subtotal" value={formatCurrency(totals.subtotal)} />
+        <ReceiptRow
+          label="Adicionales Totales"
+          value={`+${formatCurrency(totals.extrasTotal)}`}
+        />
+        {isCash && (
+          <ReceiptRow
+            label="Descuento (10%)"
+            value={`-${formatCurrency(totals.discount)}`}
+            style={{ color: "#28a745" }}
+          />
+        )}
+        <ReceiptRow
+          label="Total a pagar"
+          value={formatCurrency(totals.total)}
+          isTotal
+        />
+      </ReceiptSection>
+
+      {/* Footer */}
+      <div
+        style={{
+          textAlign: "center",
+          marginTop: "20px",
+          fontSize: "14px",
+          color: "#666",
+        }}
+      >
+        <p style={{ margin: "4px 0" }}>¡Gracias por su compra!</p>
+        <p style={{ margin: "4px 0" }}>Don Pepe le desea buen provecho</p>
       </div>
     </div>
   );
@@ -98,15 +254,19 @@ OrderReceipt.propTypes = {
       PropTypes.shape({
         name: PropTypes.string.isRequired,
         number: PropTypes.number.isRequired,
-        price: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+        price: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+          .isRequired,
         extras: PropTypes.arrayOf(PropTypes.string),
         extraPrices: PropTypes.objectOf(PropTypes.number),
       })
     ).isRequired,
     total: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
-    discount: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
-    extrasTotal: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
-    subtotal: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+    discount: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+      .isRequired,
+    extrasTotal: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+      .isRequired,
+    subtotal: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+      .isRequired,
   }).isRequired,
   isCash: PropTypes.bool.isRequired,
 };
