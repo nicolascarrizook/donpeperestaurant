@@ -137,7 +137,11 @@ export const Cart = () => {
       {/* Productos */}
       <div className="px-4">
         {cart.map((item, index) => (
-          <div key={item.cartId} className="mb-4">
+          <div
+            key={item.cartId}
+            className="mb-4"
+            style={{ borderBottom: "1px solid #e0e0e0", paddingBottom: "16px" }}
+          >
             <div className="d-flex justify-content-between align-items-center mb-3">
               <span style={{ fontSize: "16px", fontWeight: "500" }}>
                 {item.name}
@@ -201,7 +205,7 @@ export const Cart = () => {
               </div>
             </div>
 
-            {item.category.toLowerCase() === "comida" && (
+            {item.category.toLowerCase() === "sandwiches" && (
               <div className="mt-3">
                 <div className="mb-2">
                   <span style={{ color: "#666", fontSize: "14px" }}>
@@ -281,12 +285,14 @@ export const Cart = () => {
           onClick={handleCheckout}
           className="btn w-100"
           style={{
-            backgroundColor: "#ff6b00",
+            backgroundColor: cart.length > 0 ? "#ff6b00" : "#ccc",
             color: "white",
             padding: "12px",
             borderRadius: "8px",
             fontSize: "16px",
+            cursor: cart.length > 0 ? "pointer" : "not-allowed",
           }}
+          disabled={cart.length === 0}
         >
           Finalizar Pedido
         </button>

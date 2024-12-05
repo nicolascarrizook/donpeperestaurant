@@ -90,7 +90,7 @@ function Products() {
         id: selectedProduct.id,
         price: parseFloat(product.price),
         stock: product.stock === "true" || product.stock === true,
-        category: product.category.toLowerCase(),
+        category: product.category,
       };
 
       const success = await updateProduct(productToUpdate);
@@ -360,12 +360,12 @@ function Products() {
                 required
               >
                 <option value="">Seleccionar categoría</option>
-                <option value="minutas">Minutas</option>
-                <option value="sandwiches">Sandwiches</option>
-                <option value="miga">Miga</option>
-                <option value="pizzas">Pizzas</option>
-                <option value="cervezas">Cervezas</option>
-                <option value="gaseosas">Gaseosas</option>
+                <option value="minutas">minutas</option>
+                <option value="sandwiches">sandwiches</option>
+                <option value="miga">miga</option>
+                <option value="pizzas">pizzas</option>
+                <option value="cervezas">cervezas</option>
+                <option value="gaseosas">gaseosas</option>
               </select>
             </div>
 

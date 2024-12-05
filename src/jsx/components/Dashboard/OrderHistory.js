@@ -17,21 +17,38 @@ function OrderHistory() {
   const [dateRange, setDateRange] = useState([null, null]);
   const [startDate, endDate] = dateRange;
 
-  useEffect(() => {
-    fetchOrders(true);
-  }, []);
+  // Mover filteredOrders antes de handleScroll
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      const orderDate = new Date(order.date);
+      const matchesSearch =
+        order.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.paymentMethod?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesDate =
+        (!startDate || orderDate >= startDate) &&
+        (!endDate || orderDate <= endDate);
+      return matchesSearch && matchesDate;
+    });
+  }, [orders, searchTerm, startDate, endDate]);
 
-  // Función para detectar cuando el usuario llega al final
+  // Mover totalPages antes de handleScroll
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+
+  // Ahora handleScroll puede acceder a totalPages
   const handleScroll = useCallback(
     (e) => {
       const bottom =
         e.target.scrollHeight - e.target.scrollTop === e.target.clientHeight;
-      if (bottom && !loading && hasMoreOrders) {
+      if (bottom && !loading && hasMoreOrders && currentPage === totalPages) {
         loadMoreOrders();
       }
     },
-    [loading, hasMoreOrders]
+    [loading, hasMoreOrders, currentPage, totalPages, loadMoreOrders]
   );
+
+  useEffect(() => {
+    fetchOrders(true);
+  }, [fetchOrders]);
 
   // Debug para ver el estado de las órdenes en cada render
   useEffect(() => {
@@ -42,25 +59,6 @@ function OrderHistory() {
     });
   }, [orders, loading]);
 
-  // Memoizar órdenes filtradas
-  const filteredOrders = useMemo(() => {
-    return orders.filter((order) => {
-      const orderDate = new Date(order.date);
-
-      // Filtro por texto
-      const matchesSearch =
-        order.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.paymentMethod?.toLowerCase().includes(searchTerm.toLowerCase());
-
-      // Filtro por fecha
-      const matchesDate =
-        (!startDate || orderDate >= startDate) &&
-        (!endDate || orderDate <= endDate);
-
-      return matchesSearch && matchesDate;
-    });
-  }, [orders, searchTerm, startDate, endDate]);
-
   // Memoizar órdenes paginadas
   const currentOrders = useMemo(() => {
     console.log("Órdenes filtradas:", filteredOrders.length); // Debug
@@ -68,8 +66,6 @@ function OrderHistory() {
     const indexOfFirstOrder = indexOfLastOrder - itemsPerPage;
     return filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder);
   }, [filteredOrders, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
 
   const handleModalClose = useCallback(() => {
     setShowModal(false);
@@ -378,7 +374,7 @@ function OrderHistory() {
                     </tr>
                   </thead>
                   <tbody>
-                    {currentOrders.map((order) => {
+                    {currentOrders.map((order, index) => {
                       const status = getOrderStatus(order);
                       const itemCount = order.items.reduce(
                         (acc, item) => acc + item.number,
@@ -392,12 +388,17 @@ function OrderHistory() {
                       const discount =
                         subtotal - (parseFloat(order.total) || 0);
 
+                      // Crear una clave única usando múltiples propiedades
+                      const uniqueKey = `${order.id || "no-id"}-${
+                        order.orderId || "no-orderid"
+                      }-${index}`;
+
                       return (
-                        <tr key={order.orderId}>
+                        <tr key={uniqueKey}>
                           <td>
                             <Badge bg={status.variant}>{status.text}</Badge>
                           </td>
-                          <td>{order.orderId}</td>
+                          <td>{order.orderId || "sin-asignar"}</td>
                           <td>
                             <div>
                               {new Date(order.date).toLocaleDateString()}

@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import useStore from '../../../store/store/useStore';
-import { createOrder } from '../../../services/functions';
-import { useReactToPrint } from 'react-to-print';
-import OrderReceipt from '../OrderReceipt/OrderReceipt';
+import React, { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useReactToPrint } from "react-to-print";
+import { createOrder } from "../../../services/functions";
+import useStore from "../../../store/store/useStore";
+import OrderReceipt from "../OrderReceipt/OrderReceipt";
 
 const Checkout = () => {
   const { cart, resetCart } = useStore();
@@ -16,34 +16,39 @@ const Checkout = () => {
   useEffect(() => {
     const generateOrder = async () => {
       if (cart.length > 0) {
-        const today = new Date().toISOString().split('T')[0];
-        const newOrderId = orderNumber ? `${today}-${orderNumber}` : 'sin-asignar';
+        const today = new Date().toISOString().split("T")[0];
+        const newOrderId = orderNumber
+          ? `${today}-${orderNumber}`
+          : "sin-asignar";
 
         const total = cart.reduce((acc, item) => {
           const itemPrice = item.price || 0;
           const itemExtrasTotal = (item.extras.length || 0) * 500;
-          return acc + (itemPrice * item.number) + (itemExtrasTotal * item.number);
+          return acc + itemPrice * item.number + itemExtrasTotal * item.number;
         }, 0);
 
         const discount = isCash ? total * 0.1 : 0;
         const totalWithDiscount = total - discount;
-        const extrasTotal = cart.reduce((acc, item) => acc + (item.extras.length * 500 * item.number), 0);
+        const extrasTotal = cart.reduce(
+          (acc, item) => acc + item.extras.length * 500 * item.number,
+          0
+        );
 
         const orderData = {
           orderId: newOrderId,
           date: new Date().toISOString(),
-          items: cart.map(item => ({
+          items: cart.map((item) => ({
             name: item.name,
             price: item.price,
             number: item.number,
             extras: item.extras,
-            extraPrices: item.extraPrices // Asegúrate de incluir esto
+            extraPrices: item.extraPrices, // Asegúrate de incluir esto
           })),
           total: totalWithDiscount,
           discount: discount,
-          paymentMethod: isCash ? 'Efectivo' : 'Débito',
+          paymentMethod: isCash ? "Efectivo" : "Mercadopago",
           extrasTotal: extrasTotal,
-          subtotal: total
+          subtotal: total,
         };
 
         await createOrder(orderData);
@@ -60,13 +65,40 @@ const Checkout = () => {
   });
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
       {order ? (
-        <div style={{ textAlign: 'center', maxWidth: '400px', width: '100%', padding: '20px', border: '1px solid #ccc', borderRadius: '8px', boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)' }}>
+        <div
+          style={{
+            textAlign: "center",
+            maxWidth: "400px",
+            width: "100%",
+            padding: "20px",
+            border: "1px solid #ccc",
+            borderRadius: "8px",
+            boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)",
+          }}
+        >
           <OrderReceipt ref={receiptRef} order={order} isCash={isCash} />
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '20px' }}>
-            <button onClick={handlePrint} className="btn btn-primary">Imprimir Recibo</button>
-            <button onClick={() => navigate('/')} className="btn btn-secondary">Volver al inicio</button>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: "1rem",
+              marginTop: "20px",
+            }}
+          >
+            <button onClick={handlePrint} className="btn btn-primary">
+              Imprimir Recibo
+            </button>
+            <button onClick={() => navigate("/")} className="btn btn-secondary">
+              Volver al inicio
+            </button>
           </div>
         </div>
       ) : (

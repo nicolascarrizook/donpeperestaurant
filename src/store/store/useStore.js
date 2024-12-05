@@ -98,29 +98,34 @@ const useStore = create((set, get) => ({
         limit(200)
       );
 
-      console.log("Query creada, obteniendo documentos...");
-
       const ordersSnapshot = await getDocs(ordersQuery);
 
-      console.log("Snapshot obtenido:", {
-        empty: ordersSnapshot.empty,
-        size: ordersSnapshot.size,
-      });
+      // Usar un Map para eliminar duplicados basados en orderId
+      const ordersMap = new Map();
 
-      const orders = ordersSnapshot.docs.map((doc) => {
+      ordersSnapshot.docs.forEach((doc) => {
         const data = doc.data();
-        console.log("Documento:", {
-          id: doc.id,
-          date: data.date,
-          total: data.total,
-        });
-        return {
-          id: doc.id,
-          ...data,
-        };
+        const orderId = data.orderId || doc.id;
+
+        // Solo guardar la orden si no existe o si es más reciente
+        if (
+          !ordersMap.has(orderId) ||
+          new Date(data.date) > new Date(ordersMap.get(orderId).date)
+        ) {
+          ordersMap.set(orderId, {
+            id: doc.id,
+            ...data,
+          });
+        }
       });
 
-      console.log("Órdenes procesadas:", orders.length);
+      // Convertir el Map a array
+      const orders = Array.from(ordersMap.values());
+
+      // Ordenar por fecha descendente
+      orders.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      console.log("Órdenes procesadas (sin duplicados):", orders.length);
 
       set({ orders, loading: false });
     } catch (error) {
@@ -364,6 +369,34 @@ const useStore = create((set, get) => ({
       }
     } catch (error) {
       console.error("Error fetching extras prices:", error);
+    }
+  },
+
+  deleteOrder: async (orderId) => {
+    try {
+      if (!orderId) {
+        throw new Error("ID de orden no válido");
+      }
+
+      set({ loading: true });
+
+      // Referencia al documento
+      const orderRef = doc(db, "orders", orderId);
+
+      // Eliminar el documento
+      await deleteDoc(orderRef);
+
+      // Actualizar el estado eliminando la orden
+      set((state) => ({
+        orders: state.orders.filter((order) => order.id !== orderId),
+        loading: false,
+      }));
+
+      return true;
+    } catch (error) {
+      console.error("Error deleting order:", error);
+      set({ loading: false, error: error.message });
+      throw error;
     }
   },
 }));

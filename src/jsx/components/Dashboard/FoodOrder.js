@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Card } from "react-bootstrap";
+import { confirmAlert } from "react-confirm-alert";
+import "react-confirm-alert/src/react-confirm-alert.css";
 import { closeRegister, openRegister } from "../../../services/functions";
 import useStore from "../../../store/store/useStore";
 import { ensureNumber, formatCurrency } from "../../../utils/formatters";
@@ -23,44 +25,45 @@ const PaymentMethodBadge = ({ method }) => {
       bg: "#FF6B00",
       color: "white",
     },
-    tarjeta: {
+    mercadopago: {
       bg: "#4CAF50",
       color: "white",
     },
-    yape: {
-      bg: "#2196F3",
-      color: "white",
-    },
   };
+
+  const normalizedMethod =
+    method?.toLowerCase() === "tarjeta" ? "mercadopago" : method?.toLowerCase();
 
   return (
     <span
       className="px-3 py-1 rounded-pill"
       style={{
-        backgroundColor: styles[method]?.bg,
-        color: styles[method]?.color,
+        backgroundColor: styles[normalizedMethod]?.bg || "#6c757d",
+        color: styles[normalizedMethod]?.color || "white",
         fontSize: "0.875rem",
       }}
     >
-      {method.charAt(0).toUpperCase() + method.slice(1)}
+      {normalizedMethod
+        ? normalizedMethod.charAt(0).toUpperCase() + normalizedMethod.slice(1)
+        : "N/A"}
     </span>
   );
 };
 
 const FoodOrder = () => {
-  const { orders, fetchOrders, extrasPrices } = useStore();
+  const { orders, fetchOrders, extrasPrices, deleteOrder } = useStore();
   const [dailyStats, setDailyStats] = useState({
     totalIncome: 0,
     totalOrders: 0,
     cashPayments: 0,
-    cardPayments: 0,
-    yapePayments: 0,
+    mercadopagoPayments: 0,
     averageTicket: 0,
     mostSoldItems: [],
     registerStatus: "closed",
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [ordersPerPage] = useState(10);
+  const [deletingOrderId, setDeletingOrderId] = useState(null);
 
   // Función para verificar si una fecha es de hoy
   const isToday = (someDate) => {
@@ -112,13 +115,14 @@ const FoodOrder = () => {
       ),
       totalOrders: todayOrders.length,
       cashPayments: todayOrders
-        .filter((order) => order.paymentMethod === "efectivo")
+        .filter((order) => order.paymentMethod?.toLowerCase() === "efectivo")
         .reduce((sum, order) => sum + ensureNumber(order.total), 0),
-      cardPayments: todayOrders
-        .filter((order) => order.paymentMethod === "tarjeta")
-        .reduce((sum, order) => sum + ensureNumber(order.total), 0),
-      yapePayments: todayOrders
-        .filter((order) => order.paymentMethod === "yape")
+      mercadopagoPayments: todayOrders
+        .filter(
+          (order) =>
+            order.paymentMethod?.toLowerCase() === "mercadopago" ||
+            order.paymentMethod?.toLowerCase() === "tarjeta"
+        )
         .reduce((sum, order) => sum + ensureNumber(order.total), 0),
     };
 
@@ -264,6 +268,58 @@ const FoodOrder = () => {
     document.head.removeChild(style);
   };
 
+  const handleDeleteOrder = (orderId) => {
+    // Encontrar la orden que se va a eliminar
+    const orderToDelete = orders.find((order) => order.id === orderId);
+
+    if (!orderToDelete) {
+      alert("No se encontró la orden");
+      return;
+    }
+
+    confirmAlert({
+      title: "Confirmar eliminación",
+      message: "¿Estás seguro que deseas eliminar esta orden?",
+      buttons: [
+        {
+          label: "Sí",
+          onClick: async () => {
+            try {
+              setDeletingOrderId(orderId); // Activar loading
+              await deleteOrder(orderId);
+              setDailyStats((prevStats) => ({
+                ...prevStats,
+                totalOrders: prevStats.totalOrders - 1,
+                totalIncome:
+                  prevStats.totalIncome - ensureNumber(orderToDelete.total),
+                // Actualizar otros stats si es necesario
+                cashPayments:
+                  orderToDelete.paymentMethod?.toLowerCase() === "efectivo"
+                    ? prevStats.cashPayments - ensureNumber(orderToDelete.total)
+                    : prevStats.cashPayments,
+                mercadopagoPayments:
+                  orderToDelete.paymentMethod?.toLowerCase() ===
+                    "mercadopago" ||
+                  orderToDelete.paymentMethod?.toLowerCase() === "tarjeta"
+                    ? prevStats.mercadopagoPayments -
+                      ensureNumber(orderToDelete.total)
+                    : prevStats.mercadopagoPayments,
+              }));
+            } catch (error) {
+              alert("Error al eliminar la orden: " + error.message);
+            } finally {
+              setDeletingOrderId(null); // Desactivar loading
+            }
+          },
+        },
+        {
+          label: "No",
+          onClick: () => {},
+        },
+      ],
+    });
+  };
+
   return (
     <div className="container-fluid">
       <div className="row g-4 mb-4">
@@ -291,15 +347,9 @@ const FoodOrder = () => {
                 </span>
               </div>
               <div className="d-flex justify-content-between mb-2">
-                <span className="text-muted">Tarjeta</span>
+                <span className="text-muted">Mercadopago</span>
                 <span className="fw-bold">
-                  {formatCurrency(dailyStats.cardPayments)}
-                </span>
-              </div>
-              <div className="d-flex justify-content-between">
-                <span className="text-muted">Yape</span>
-                <span className="fw-bold">
-                  {formatCurrency(dailyStats.yapePayments)}
+                  {formatCurrency(dailyStats.mercadopagoPayments)}
                 </span>
               </div>
             </Card.Body>
@@ -377,42 +427,87 @@ const FoodOrder = () => {
               </tr>
             </thead>
             <tbody>
-              {currentOrders.map((order) => (
-                <tr key={order.orderId}>
-                  <td className="ps-4">{order.orderId || "sin-asignar"}</td>
-                  <td>
-                    {new Date(order.date).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </td>
-                  <td>
-                    {order.items.map((item, idx) => (
-                      <div key={idx} className="mb-1">
-                        <span>
-                          {item.number}x {item.name}
-                        </span>
-                        {item.extras?.length > 0 && (
-                          <small className="text-muted ms-2">
-                            (+{item.extras.join(", ")})
-                          </small>
-                        )}
+              {currentOrders.length > 0 ? (
+                currentOrders.map((order) => (
+                  <tr key={order.id || order.orderId}>
+                    <td className="ps-4">{order.orderId || "sin-asignar"}</td>
+                    <td>
+                      {new Date(order.date).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
+                    <td>
+                      {order.items.map((item, idx) => (
+                        <div key={idx} className="mb-1">
+                          <span>
+                            {item.number}x {item.name}
+                          </span>
+                          {item.extras?.length > 0 && (
+                            <small className="text-muted ms-2">
+                              (+{item.extras.join(", ")})
+                            </small>
+                          )}
+                        </div>
+                      ))}
+                    </td>
+                    <td>
+                      <PaymentMethodBadge method={order.paymentMethod} />
+                    </td>
+                    <td className="text-end pe-4">
+                      <div className="d-flex justify-content-end align-items-center">
+                        <div className="me-3">
+                          <div className="fw-bold">
+                            {formatCurrency(order.total)}
+                          </div>
+                          {order.discount > 0 && (
+                            <small style={{ color: "#FF6B00" }}>
+                              -{formatCurrency(order.discount)}
+                            </small>
+                          )}
+                        </div>
+                        <button
+                          className="btn btn-link text-danger no-print"
+                          onClick={() => handleDeleteOrder(order.id)}
+                          disabled={deletingOrderId === order.id}
+                          style={{ padding: "6px" }}
+                        >
+                          {deletingOrderId === order.id ? (
+                            <div
+                              className="spinner-border spinner-border-sm text-danger"
+                              role="status"
+                            >
+                              <span className="visually-hidden">
+                                Eliminando...
+                              </span>
+                            </div>
+                          ) : (
+                            <i className="fas fa-trash-alt"></i>
+                          )}
+                        </button>
                       </div>
-                    ))}
-                  </td>
-                  <td>
-                    <PaymentMethodBadge method={order.paymentMethod} />
-                  </td>
-                  <td className="text-end pe-4">
-                    <div className="fw-bold">{formatCurrency(order.total)}</div>
-                    {order.discount > 0 && (
-                      <small style={{ color: "#FF6B00" }}>
-                        -{formatCurrency(order.discount)}
-                      </small>
-                    )}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="text-center py-5">
+                    <div className="d-flex flex-column align-items-center">
+                      <i
+                        className="fas fa-utensils mb-3"
+                        style={{ fontSize: "2.5rem", color: "#FF6B00" }}
+                      ></i>
+                      <h5 className="mb-2" style={{ color: "#4a4a4a" }}>
+                        ¡Todo listo para comenzar!
+                      </h5>
+                      <p className="text-muted mb-0">
+                        Estamos preparados para recibir las órdenes del día.
+                        Cuando lleguen los pedidos, aparecerán aquí.
+                      </p>
+                    </div>
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -448,6 +543,17 @@ const styles = `
     color: #dee2e6;
     pointer-events: none;
     background-color: transparent;
+  }
+
+  .spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.15em;
+  }
+
+  .btn-link:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 `;
 

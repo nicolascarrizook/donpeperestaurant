@@ -3,7 +3,7 @@ import { Nav, Spinner, Tab } from "react-bootstrap";
 import useStore from "../../../store/store/useStore";
 
 const CATEGORIES = {
-  MINUTAS: "comida",
+  MINUTAS: "minutas",
   SANDWICHES: "sandwiches",
   MIGA: "miga",
   PIZZAS: "pizzas",
