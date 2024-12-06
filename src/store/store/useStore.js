@@ -4,7 +4,6 @@ import {
   addDoc,
   collection,
   deleteDoc,
-  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -245,37 +244,29 @@ const useStore = create((set, get) => ({
       ),
     })),
 
-  addExtra: (cartId, extra, price) =>
+  addExtra: (cartId, extra) =>
     set((state) => ({
       cart: state.cart.map((item) =>
         item.cartId === cartId
           ? {
               ...item,
-              extras: [...item.extras, extra],
-              extraPrices: {
-                ...item.extraPrices,
-                [extra]: parseFloat(price) || 0,
-              },
+              extras: item.extras ? [...item.extras, extra] : [extra],
             }
           : item
       ),
     })),
 
-  removeExtra: async (extra) => {
-    try {
-      const docRef = doc(db, "config", "extras");
-      await updateDoc(docRef, {
-        [`prices.${extra}`]: deleteField(),
-      });
-      set((state) => {
-        const newPrices = { ...state.extrasPrices };
-        delete newPrices[extra];
-        return { extrasPrices: newPrices };
-      });
-    } catch (error) {
-      console.error("Error removing extra:", error);
-    }
-  },
+  removeExtra: (cartId, extra) =>
+    set((state) => ({
+      cart: state.cart.map((item) =>
+        item.cartId === cartId
+          ? {
+              ...item,
+              extras: item.extras.filter((e) => e !== extra),
+            }
+          : item
+      ),
+    })),
 
   updateExtraPrice: async (extra, price) => {
     try {

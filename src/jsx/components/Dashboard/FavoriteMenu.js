@@ -259,8 +259,11 @@ const FavoriteMenu = () => {
       </div>
 
       <Tab.Container
-        defaultActiveKey={CATEGORIES.MINUTAS}
-        onSelect={(tab) => setActiveTab(tab)}
+        defaultActiveKey={CATEGORIES.SANDWICHES}
+        onSelect={(tab) => {
+          setActiveTab(tab);
+          setSearchTerm(""); // Resetear el término de búsqueda al cambiar de tab
+        }}
       >
         <div className="d-flex align-items-center justify-content-between mb-4">
           <Nav className="nav nav-tabs style-1" role="tablist">

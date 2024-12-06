@@ -46,18 +46,37 @@ export const Cart = () => {
   }, 0);
 
   const extrasTotal = cart.reduce((acc, item) => {
-    if (item.category.toLowerCase() === "comida") {
-      return (
-        acc +
-        item.extras.reduce((extrasSum, extra) => {
-          const extraPrice = extrasPrices?.[extra] || 0;
-          return extrasSum + extraPrice;
-        }, 0) *
-          item.number
+    if (item.extras && Array.isArray(item.extras) && item.extras.length > 0) {
+      const itemExtrasTotal = item.extras.reduce((extrasSum, extra) => {
+        const extraPrice = extrasPrices?.[extra] || 0;
+        console.log(
+          `Item: ${item.name}, Extra: ${extra}, Price: ${extraPrice}`
+        );
+        return extrasSum + extraPrice;
+      }, 0);
+      console.log(
+        `Total extras for ${item.name}: ${itemExtrasTotal * item.number}`
       );
+      return acc + itemExtrasTotal * item.number;
     }
     return acc;
   }, 0);
+
+  const getItemExtrasTotal = (item) => {
+    if (
+      !item.extras ||
+      !Array.isArray(item.extras) ||
+      item.extras.length === 0
+    ) {
+      return 0;
+    }
+    return (
+      item.extras.reduce((sum, extra) => {
+        const extraPrice = extrasPrices?.[extra] || 0;
+        return sum + extraPrice;
+      }, 0) * item.number
+    );
+  };
 
   const total = subtotal + extrasTotal;
   const discount = isCash ? total * 0.1 : 0;
@@ -146,15 +165,19 @@ export const Cart = () => {
               <span style={{ fontSize: "16px", fontWeight: "500" }}>
                 {item.name}
               </span>
-              <span
-                style={{
-                  color: "#ff6b00",
-                  fontSize: "16px",
-                  fontWeight: "600",
-                }}
-              >
-                +${getNumericPrice(item.price).toFixed(2)}
-              </span>
+              <div className="text-end">
+                <div
+                  className="fw-bold"
+                  style={{ color: "#ff6b00", fontSize: "16px" }}
+                >
+                  +${getNumericPrice(item.price).toFixed(2)}
+                </div>
+                {item.extras && item.extras.length > 0 && (
+                  <div style={{ fontSize: "14px", color: "#666" }}>
+                    Adicionales: ${getItemExtrasTotal(item).toFixed(2)}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="d-flex justify-content-between align-items-center">

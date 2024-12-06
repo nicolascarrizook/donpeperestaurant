@@ -164,6 +164,8 @@ const OrderReceipt = forwardRef(({ order, isCash }, ref) => {
         <ReceiptRow
           label="Turno:"
           value={isWithoutNumber ? "Sin asignar" : order.orderId.substring(11)}
+          fontSize="18px"
+          isTotal
         />
         <ReceiptRow
           label="Fecha:"

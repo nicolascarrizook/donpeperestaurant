@@ -21,12 +21,31 @@ const CustomizationModal = ({ show, handleClose, product }) => {
 
   const handleSave = async () => {
     try {
-      await Promise.all(
-        product.extras.map((extra) => removeExtra(product.cartId, extra))
+      console.log("Estado actual:", {
+        productExtras: product.extras,
+        selectedExtras: selectedExtras,
+        cartId: product.cartId,
+      });
+
+      // Primero removemos los extras que ya no están seleccionados
+      const extrasToRemove = product.extras.filter(
+        (extra) => !selectedExtras.includes(extra)
       );
-      await Promise.all(
-        selectedExtras.map((extra) => addExtra(product.cartId, extra))
+
+      // Luego identificamos los nuevos extras a agregar
+      const extrasToAdd = selectedExtras.filter(
+        (extra) => !product.extras.includes(extra)
       );
+
+      // Removemos los extras no deseados
+      for (const extra of extrasToRemove) {
+        await removeExtra(product.cartId, extra);
+      }
+
+      // Agregamos los nuevos extras
+      for (const extra of extrasToAdd) {
+        await addExtra(product.cartId, extra);
+      }
 
       setSaveStatus("Cambios guardados correctamente");
       setTimeout(() => {
@@ -34,6 +53,7 @@ const CustomizationModal = ({ show, handleClose, product }) => {
         handleClose();
       }, 1500);
     } catch (error) {
+      console.error("Error al guardar cambios:", error);
       setSaveStatus("Error al guardar los cambios");
       setTimeout(() => setSaveStatus(""), 1500);
     }
@@ -150,11 +170,7 @@ const CustomizationModal = ({ show, handleClose, product }) => {
         <Button variant="outline-secondary" onClick={handleClose}>
           Cancelar
         </Button>
-        <Button
-          variant="primary"
-          onClick={handleSave}
-          disabled={!selectedExtras.length}
-        >
+        <Button variant="primary" onClick={handleSave}>
           Guardar Cambios
         </Button>
       </Modal.Footer>
