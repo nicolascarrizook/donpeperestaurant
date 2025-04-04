@@ -6,16 +6,29 @@ import useStore from "../../../store/store/useStore";
 import OrderReceipt from "../OrderReceipt/OrderReceipt";
 
 const Checkout = () => {
-  const { cart, resetCart } = useStore();
+  const { cart, resetCart, discountPercentage, fetchDiscountPercentage } = useStore();
   const [order, setOrder] = useState(null);
+  const [isLoadingDiscount, setIsLoadingDiscount] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const { orderNumber, isCash } = location.state || {};
   const receiptRef = useRef();
 
+  // Cargar el porcentaje de descuento al inicio
+  useEffect(() => {
+    const loadDiscount = async () => {
+      if (isCash) {
+        setIsLoadingDiscount(true);
+        await fetchDiscountPercentage();
+        setIsLoadingDiscount(false);
+      }
+    };
+    loadDiscount();
+  }, [fetchDiscountPercentage, isCash]);
+
   useEffect(() => {
     const generateOrder = async () => {
-      if (cart.length > 0) {
+      if (cart.length > 0 && (!isCash || !isLoadingDiscount)) {
         const today = new Date().toISOString().split("T")[0];
         const newOrderId = orderNumber
           ? `${today}-${orderNumber}`
@@ -27,7 +40,9 @@ const Checkout = () => {
           return acc + itemPrice * item.number + itemExtrasTotal * item.number;
         }, 0);
 
-        const discount = isCash ? total * 0.1 : 0;
+        // Usar el porcentaje de descuento cargado o 0 si no hay
+        const currentDiscountPercentage = discountPercentage || 0;
+        const discount = isCash ? total * (currentDiscountPercentage / 100) : 0;
         const totalWithDiscount = total - discount;
         const extrasTotal = cart.reduce(
           (acc, item) => acc + item.extras.length * 500 * item.number,
@@ -42,10 +57,11 @@ const Checkout = () => {
             price: item.price,
             number: item.number,
             extras: item.extras,
-            extraPrices: item.extraPrices, // Asegúrate de incluir esto
+            extraPrices: item.extraPrices,
           })),
           total: totalWithDiscount,
           discount: discount,
+          discountPercentage: isCash ? currentDiscountPercentage : 0,
           paymentMethod: isCash ? "Efectivo" : "Mercadopago",
           extrasTotal: extrasTotal,
           subtotal: total,
@@ -57,8 +73,10 @@ const Checkout = () => {
       }
     };
 
-    generateOrder();
-  }, [cart, orderNumber, resetCart, isCash]);
+    if (!isLoadingDiscount || !isCash) {
+      generateOrder();
+    }
+  }, [cart, orderNumber, resetCart, isCash, discountPercentage, isLoadingDiscount]);
 
   const handlePrint = useReactToPrint({
     content: () => receiptRef.current,

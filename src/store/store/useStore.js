@@ -42,6 +42,7 @@ const useStore = create((set, get) => ({
   orders: [],
   categories: Object.values(CATEGORIES),
   extrasPrices: {},
+  discountPercentage: 10, // Porcentaje de descuento predeterminado
   loading: false,
   error: null,
 
@@ -388,6 +389,50 @@ const useStore = create((set, get) => ({
       console.error("Error deleting order:", error);
       set({ loading: false, error: error.message });
       throw error;
+    }
+  },
+
+  // Función para cargar el porcentaje de descuento
+  fetchDiscountPercentage: async () => {
+    try {
+      const configRef = doc(db, "config", "discount");
+      const docSnap = await getDoc(configRef);
+
+      if (docSnap.exists()) {
+        const { percentage } = docSnap.data();
+        set({ discountPercentage: percentage });
+      } else {
+        // Si no existe, crear documento con valor predeterminado
+        await setDoc(configRef, { percentage: 10 });
+      }
+    } catch (error) {
+      console.error("Error fetching discount percentage:", error);
+    }
+  },
+
+  // Función para actualizar el porcentaje de descuento
+  updateDiscountPercentage: async (percentage) => {
+    try {
+      const configRef = doc(db, "config", "discount");
+      const docSnap = await getDoc(configRef);
+
+      const numericPercentage = Number(percentage);
+      if (isNaN(numericPercentage) || numericPercentage < 0 || numericPercentage > 100) {
+        throw new Error("Porcentaje inválido");
+      }
+
+      if (!docSnap.exists()) {
+        await setDoc(configRef, { percentage: numericPercentage });
+      } else {
+        await updateDoc(configRef, { percentage: numericPercentage });
+      }
+
+      // Actualizar el estado local
+      set({ discountPercentage: numericPercentage });
+      return true;
+    } catch (error) {
+      console.error("Error updating discount percentage:", error);
+      return false;
     }
   },
 }));

@@ -14,6 +14,8 @@ export const Cart = () => {
     decrementProduct,
     removeFromCart,
     extrasPrices,
+    discountPercentage = 10,
+    fetchDiscountPercentage,
   } = useStore();
   const [isCash, setIsCash] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -21,15 +23,20 @@ export const Cart = () => {
   const [orderNumber, setOrderNumber] = useState(null);
   const [isNotNumber, setIsNotNumber] = useState(false);
   const [nextOrderNumber, setNextOrderNumber] = useState(null);
+  const [isLoadingDiscount, setIsLoadingDiscount] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchOrderNumber = async () => {
+    const fetchData = async () => {
       const currentOrderNumber = await getOrderNumber();
       setNextOrderNumber(currentOrderNumber + 1);
+      
+      setIsLoadingDiscount(true);
+      await fetchDiscountPercentage();
+      setIsLoadingDiscount(false);
     };
-    fetchOrderNumber();
-  }, []);
+    fetchData();
+  }, [fetchDiscountPercentage]);
 
   const getNumericPrice = (price) => {
     if (typeof price === "number") return price;
@@ -79,7 +86,7 @@ export const Cart = () => {
   };
 
   const total = subtotal + extrasTotal;
-  const discount = isCash ? total * 0.1 : 0;
+  const discount = isCash ? total * (discountPercentage / 100) : 0;
   const totalWithDiscount = total - discount;
 
   const handleOpenModal = (index) => {
@@ -286,7 +293,45 @@ export const Cart = () => {
             />
             <span style={{ color: "#666" }}>Pago en efectivo</span>
           </label>
-          <span style={{ color: "#28a745" }}>-${discount.toFixed(2)}</span>
+          {isLoadingDiscount ? (
+            <span 
+              style={{ 
+                color: "#28a745", 
+                width: "60px", 
+                height: "20px",
+                display: "inline-block",
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  background: "linear-gradient(90deg, #e8f5e9, #ffffff, #e8f5e9)",
+                  backgroundSize: "200% 100%",
+                  animation: "shimmerGreen 1.5s infinite",
+                }}
+              />
+              <style>
+                {`
+                  @keyframes shimmerGreen {
+                    0% {
+                      background-position: -200% 0;
+                    }
+                    100% {
+                      background-position: 200% 0;
+                    }
+                  }
+                `}
+              </style>
+            </span>
+          ) : (
+            <span style={{ color: "#28a745" }}>-${discount.toFixed(2)}</span>
+          )}
         </div>
 
         <hr style={{ opacity: 0.1 }} />

@@ -298,10 +298,102 @@ const ConfigModal = ({ show, handleClose }) => {
   );
 };
 
+const DiscountConfigModal = ({ show, handleClose }) => {
+  const { discountPercentage, updateDiscountPercentage } = useStore();
+  const [percentage, setPercentage] = useState(10);
+  const [saveStatus, setSaveStatus] = useState("");
+
+  useEffect(() => {
+    if (discountPercentage) {
+      setPercentage(discountPercentage);
+    }
+  }, [discountPercentage]);
+
+  const handleSave = async () => {
+    try {
+      const numericPercentage = parseFloat(percentage);
+      if (isNaN(numericPercentage) || numericPercentage < 0 || numericPercentage > 100) {
+        setSaveStatus("Error: El porcentaje debe ser un número entre 0 y 100");
+        return;
+      }
+
+      const success = await updateDiscountPercentage(numericPercentage);
+      if (success) {
+        setSaveStatus("Porcentaje actualizado correctamente");
+        setTimeout(() => handleClose(), 1500);
+      } else {
+        setSaveStatus("Error al actualizar el porcentaje");
+      }
+    } catch (error) {
+      console.error("Error al guardar el porcentaje:", error);
+      setSaveStatus("Error: " + error.message);
+    }
+
+    setTimeout(() => setSaveStatus(""), 3000);
+  };
+
+  return (
+    <Modal show={show} onHide={handleClose} centered>
+      <Modal.Header closeButton className="border-0">
+        <Modal.Title>Configurar Porcentaje de Descuento</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        {saveStatus && (
+          <div
+            className={`alert alert-${
+              saveStatus.includes("Error") ? "danger" : "success"
+            } mb-3`}
+          >
+            {saveStatus}
+          </div>
+        )}
+
+        <Form.Group className="mb-3">
+          <Form.Label>Porcentaje de descuento para pagos en efectivo</Form.Label>
+          <div className="input-group">
+            <Form.Control
+              type="number"
+              value={percentage}
+              onChange={(e) => setPercentage(e.target.value)}
+              min="0"
+              max="100"
+              step="1"
+            />
+            <span className="input-group-text">%</span>
+          </div>
+          <Form.Text className="text-muted">
+            Este porcentaje se aplicará automáticamente a todas las ventas en efectivo.
+          </Form.Text>
+        </Form.Group>
+      </Modal.Body>
+      <Modal.Footer className="border-0">
+        <Button variant="secondary" onClick={handleClose}>
+          Cancelar
+        </Button>
+        <Button variant="primary" onClick={handleSave}>
+          Guardar
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+};
+
 const Home = () => {
   const { changeBackground } = useContext(ThemeContext);
   const [showConfigModal, setShowConfigModal] = useState(false);
-  const { extrasPrices } = useStore();
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const { extrasPrices, discountPercentage = 10, fetchDiscountPercentage } = useStore();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadDiscount = async () => {
+      setLoading(true);
+      await fetchDiscountPercentage();
+      setLoading(false);
+    };
+    
+    loadDiscount();
+  }, [fetchDiscountPercentage]);
 
   return (
     <>
@@ -364,21 +456,61 @@ const Home = () => {
                 <div>
                   <h4 className="text-white mb-2">¡Descuento Especial!</h4>
                   <div className="d-flex align-items-center gap-2">
-                    <span
-                      className="bg-white rounded-pill px-3 py-1"
-                      style={{
-                        color: "#ff6b00",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      10% OFF
-                    </span>
+                    {loading ? (
+                      <span
+                        className="bg-white rounded-pill px-3 py-1"
+                        style={{
+                          color: "#ff6b00",
+                          fontWeight: "bold",
+                          width: "80px",
+                          height: "28px",
+                          display: "inline-block",
+                          position: "relative",
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: "100%",
+                            background: "linear-gradient(90deg, #f0f0f0, #ffffff, #f0f0f0)",
+                            backgroundSize: "200% 100%",
+                            animation: "shimmer 1.5s infinite",
+                          }}
+                        />
+                        <style>
+                          {`
+                            @keyframes shimmer {
+                              0% {
+                                background-position: -200% 0;
+                              }
+                              100% {
+                                background-position: 200% 0;
+                              }
+                            }
+                          `}
+                        </style>
+                      </span>
+                    ) : (
+                      <span
+                        className="bg-white rounded-pill px-3 py-1"
+                        style={{
+                          color: "#ff6b00",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {discountPercentage}% OFF
+                      </span>
+                    )}
                     <span className="text-white">en pagos en efectivo</span>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-3 pt-3 border-top border-white border-opacity-25">
+              <div className="mt-3 pt-3 border-top border-white border-opacity-25 d-flex justify-content-between align-items-center">
                 <div className="d-flex align-items-center text-white">
                   <i className="fas fa-info-circle me-2"></i>
                   <small>
@@ -386,6 +518,29 @@ const Home = () => {
                     en efectivo
                   </small>
                 </div>
+                <button
+                  className="btn btn-sm btn-light"
+                  style={{
+                    borderRadius: "20px",
+                    padding: "8px 16px",
+                    border: "1px solid #ff6b00",
+                    color: "#ff6b00",
+                    transition: "all 0.3s ease",
+                    backgroundColor: "white",
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.backgroundColor = "#ff6b00";
+                    e.currentTarget.style.color = "white";
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.backgroundColor = "white";
+                    e.currentTarget.style.color = "#ff6b00";
+                  }}
+                  onClick={() => setShowDiscountModal(true)}
+                >
+                  <i className="fas fa-cog me-2"></i>
+                  Configurar
+                </button>
               </div>
             </div>
           </div>
@@ -395,6 +550,11 @@ const Home = () => {
       <ConfigModal
         show={showConfigModal}
         handleClose={() => setShowConfigModal(false)}
+      />
+      
+      <DiscountConfigModal 
+        show={showDiscountModal}
+        handleClose={() => setShowDiscountModal(false)}
       />
     </>
   );

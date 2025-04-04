@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import React, { forwardRef } from "react";
+import React, { forwardRef, useState, useEffect } from "react";
 import useStore from "../../../store/store/useStore";
 import { formatCurrency } from "../../../utils/formatters";
 
@@ -38,7 +38,22 @@ const ReceiptRow = ({ label, value, isTotal, fontSize = "14px" }) => (
 );
 
 const OrderReceipt = forwardRef(({ order, isCash }, ref) => {
-  const { extrasPrices } = useStore();
+  const { extrasPrices, discountPercentage, fetchDiscountPercentage } = useStore();
+  const [isLoading, setIsLoading] = useState(!order?.discountPercentage);
+
+  useEffect(() => {
+    // Si la orden no tiene el porcentaje de descuento configurado, lo cargamos
+    if (!order?.discountPercentage && isCash) {
+      const loadDiscount = async () => {
+        setIsLoading(true);
+        await fetchDiscountPercentage();
+        setIsLoading(false);
+      };
+      loadDiscount();
+    } else {
+      setIsLoading(false);
+    }
+  }, [order, fetchDiscountPercentage, isCash]);
 
   if (!order) return null;
 
@@ -112,7 +127,12 @@ const OrderReceipt = forwardRef(({ order, isCash }, ref) => {
       );
     }, 0);
 
-    const discount = isCash ? subtotal * 0.1 : 0;
+    // Usar el valor guardado en la orden si existe, de lo contrario usar el del store
+    const orderDiscountPercentage = order.discountPercentage !== undefined 
+      ? order.discountPercentage 
+      : (discountPercentage || 0);
+    
+    const discount = isCash ? subtotal * (orderDiscountPercentage / 100) : 0;
     const total = subtotal - discount;
 
     return {
@@ -120,6 +140,7 @@ const OrderReceipt = forwardRef(({ order, isCash }, ref) => {
       extrasTotal: toNumber(extrasTotal),
       discount: toNumber(discount),
       total: toNumber(total),
+      discountPercentage: orderDiscountPercentage
     };
   };
 
@@ -219,7 +240,10 @@ const OrderReceipt = forwardRef(({ order, isCash }, ref) => {
         />
         {isCash && (
           <ReceiptRow
-            label="Descuento (10%)"
+            label={isLoading 
+              ? "Descuento" 
+              : `Descuento (${totals.discountPercentage}%)`
+            }
             value={`-${formatCurrency(totals.discount)}`}
             style={{ color: "#28a745" }}
           />
